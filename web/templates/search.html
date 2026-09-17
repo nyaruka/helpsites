@@ -1,0 +1,26 @@
+{{ define "title" }}{{ tr "Search" }} | {{ .Site.Title }}{{ end }}
+{{ define "content" }}
+  <nav class="breadcrumbs" aria-label="{{ tr "Breadcrumb" }}">
+    <a href="{{ .Prefix }}/">{{ tr "Home" }}</a>
+    <span>{{ tr "Search" }}</span>
+  </nav>
+  <header class="page-header">
+    {{ if .Query }}
+      <h1>{{ trn (len .Results) "%d result for" "%d results for" }} “{{ .Query }}”</h1>
+    {{ else }}
+      <h1>{{ tr "Search" }}</h1>
+    {{ end }}
+  </header>
+  {{ if and .Query (not .Results) }}
+    <p class="empty">{{ tr "No articles matched your search. Try different words, or browse the sections on the home page." }}</p>
+  {{ end }}
+  <div class="article-list">
+    {{ range .Results }}
+      <a class="article-item" href="{{ $.Prefix }}/{{ .Article.Parent.Slug }}/{{ .Article.Slug }}/">
+        <span class="section">{{ .Article.Parent.Title }}</span>
+        <h2>{{ .Article.Title }}</h2>
+        {{ if .Snippet }}<p>{{ .Snippet }}</p>{{ end }}
+      </a>
+    {{ end }}
+  </div>
+{{ end }}

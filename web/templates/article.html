@@ -1,0 +1,42 @@
+{{ define "title" }}{{ .Article.Title }} | {{ .Site.Title }}{{ end }}
+{{ define "description" }}{{ .Article.Excerpt }}{{ end }}
+{{ define "content" }}
+  <nav class="breadcrumbs" aria-label="{{ tr "Breadcrumb" }}">
+    <a href="{{ .Prefix }}/">{{ tr "Home" }}</a>
+    <a href="{{ .Prefix }}/{{ .Section.Slug }}/">{{ .Section.Title }}</a>
+    <span>{{ .Article.Title }}</span>
+  </nav>
+  <div class="article-layout">
+    <article class="article">
+      <h1>{{ .Article.Title }}</h1>
+      <div class="doc">{{ .HTML }}</div>
+      <footer class="article-footer">
+        {{ tr "Last updated" }} {{ .Article.ModifiedOn | date }}
+      </footer>
+    </article>
+    <aside class="sidebar" aria-label="{{ tr "In this section" }}">
+      <h2>
+        <a href="{{ .Prefix }}/{{ .Section.Slug }}/">{{ .Section.Title }}</a>
+      </h2>
+      <ul>
+        {{ range .Siblings }}
+          <li {{ if eq .ID $.Article.ID }}class="current" aria-current="page"{{ end }}>
+            <a href="{{ $.Prefix }}/{{ $.Section.Slug }}/{{ .Slug }}/">{{ .Title }}</a>
+            {{ if and (eq .ID $.Article.ID) $.Article.Headings }}
+              <ul class="headings" aria-label="{{ tr "In this article" }}">
+                {{ range $.Article.Headings }}
+                  <li>
+                    <a href="#{{ .ID }}">{{ .Text }}</a>
+                  </li>
+                {{ end }}
+              </ul>
+            {{ end }}
+          </li>
+        {{ end }}
+      </ul>
+    </aside>
+  </div>
+{{ end }}
+{{ define "scripts" }}
+  {{ if .Article.Headings }}<script src="{{ .Prefix }}/static/js/helpsite.js" defer></script>{{ end }}
+{{ end }}

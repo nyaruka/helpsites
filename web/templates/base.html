@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="{{ .Lang }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ block "title" . }}{{ .Site.Title }}{{ end }}</title>
+    <meta name="description" content="{{ block "description" . }}{{ if .Site.Tagline }}{{ .Site.Tagline }}{{ else }}{{ .Site.Title }}{{ end }}{{ end }}">
+    {{ if .IsPreview }}<meta name="robots" content="noindex">{{ end }}
+    <link rel="stylesheet" href="{{ .Prefix }}/static/css/helpsite.css">
+    <link rel="stylesheet" href="{{ .Prefix }}/static/css/article.css">
+    <style>
+      :root {
+        --primary: {{ .Site.PrimaryColor | css }};
+        --header-bg: {{ .Site.HeaderColor | css }};
+        --header-text: {{ .Site.HeaderTextColor | css }};
+      }
+
+      /* the chat widget takes the site's accent */
+      temba-webchat {
+        --webchat-primary: var(--primary);
+      }
+    </style>
+  </head>
+  <body>
+    {{ if .IsPreview }}
+      <div class="preview-bar">
+        <span>{{ tr "This is a preview of your help site as its readers will see it." }}</span>
+        <a href="{{ .SettingsURL }}">{{ tr "Site settings" }}</a>
+      </div>
+    {{ end }}
+    <header class="site-header">
+      <div class="container">
+        <a class="brand" href="{{ .Prefix }}/">{{ .Site.Title }}</a>
+        {{ block "header-search" . }}
+          <form class="search header-search" action="{{ .Prefix }}/search/" method="get" role="search">
+            <input type="search"
+                   name="q"
+                   value="{{ .Query }}"
+                   placeholder="{{ tr "Search articles" }}"
+                   aria-label="{{ tr "Search articles" }}">
+          </form>
+        {{ end }}
+      </div>
+    </header>
+    <main class="container">
+      {{ block "content" . }}{{ end }}
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        {{ if .Site.Footer }}
+          <span>{{ .Site.Footer }}</span>
+        {{ else }}
+          <span>{{ .Site.Title }}</span>
+        {{ end }}
+      </div>
+    </footer>
+    {{ block "scripts" . }}{{ end }}
+    {{ if .Site.ChatChannel }}
+      <script src="https://{{ .AppHost }}/sitestatic/components/temba-webchat.js"></script>
+      <temba-webchat channel="{{ .Site.ChatChannel }}" host="https://{{ .AppHost }}">
+      </temba-webchat>
+    {{ end }}
+  </body>
+</html>

@@ -1,0 +1,20 @@
+{{ define "title" }}{{ .Section.Title }} | {{ .Site.Title }}{{ end }}
+{{ define "description" }}{{ if .Section.Description }}{{ .Section.Description }}{{ else }}{{ .Section.Title }}{{ end }}{{ end }}
+{{ define "content" }}
+  <nav class="breadcrumbs" aria-label="{{ tr "Breadcrumb" }}">
+    <a href="{{ .Prefix }}/">{{ tr "Home" }}</a>
+    <span>{{ .Section.Title }}</span>
+  </nav>
+  <header class="page-header">
+    <h1>{{ .Section.Title }}</h1>
+    {{ if .Section.Description }}<p class="lead">{{ .Section.Description }}</p>{{ end }}
+  </header>
+  <div class="article-list">
+    {{ range .Articles }}
+      <a class="article-item" href="{{ $.Prefix }}/{{ $.Section.Slug }}/{{ .Slug }}/">
+        <h2>{{ .Title }}</h2>
+        {{ with .Excerpt }}<p>{{ . }}</p>{{ end }}
+      </a>
+    {{ end }}
+  </div>
+{{ end }}

@@ -1,0 +1,48 @@
+{{ define "header-search" }}{{ end }}
+{{ define "content" }}
+  <section class="hero">
+    <h1>
+      {{ if .Site.Tagline }}
+        {{ .Site.Tagline }}
+      {{ else }}
+        {{ tr "How can we help?" }}
+      {{ end }}
+    </h1>
+    <form class="search hero-search" action="{{ .Prefix }}/search/" method="get" role="search">
+      <input type="search"
+             name="q"
+             placeholder="{{ tr "Search for answers" }}"
+             aria-label="{{ tr "Search for answers" }}"
+             autofocus>
+      <button type="submit">{{ tr "Search" }}</button>
+    </form>
+  </section>
+  {{ if .Sections }}
+    <section class="sections" aria-label="{{ tr "Sections" }}">
+      {{ range .Sections }}
+        <a class="card section-card" href="{{ $.Prefix }}/{{ .Slug }}/">
+          <h2>{{ .Title }}</h2>
+          {{ if .Description }}<p>{{ .Description }}</p>{{ end }}
+          <span class="meta">{{ trn .NumArticles "%d article" "%d articles" }}</span>
+        </a>
+      {{ end }}
+    </section>
+  {{ else }}
+    <p class="empty">{{ tr "Nothing has been published here yet." }}</p>
+  {{ end }}
+  {{ if .Popular }}
+    <section class="popular" aria-label="{{ tr "Popular articles" }}">
+      <h2>{{ tr "Popular articles" }}</h2>
+      <ol>
+        {{ range .Popular }}
+          <li>
+            <a href="{{ $.Prefix }}/{{ .Parent.Slug }}/{{ .Slug }}/">
+              <span class="title">{{ .Title }}</span>
+              <span class="section">{{ .Parent.Title }}</span>
+            </a>
+          </li>
+        {{ end }}
+      </ol>
+    </section>
+  {{ end }}
+{{ end }}

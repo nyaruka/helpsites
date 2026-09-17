@@ -1,0 +1,62 @@
+name: CI
+on:
+  push:
+    branches: [main]
+    tags: ["**"]
+  pull_request:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    container:
+      image: golang:1.27-trixie
+
+    services:
+      valkey:
+        image: valkey/valkey:8.1-alpine
+        ports:
+          - 6379:6379
+      postgres:
+        image: pgvector/pgvector:pg15
+        env:
+          POSTGRES_DB: helpsites_test
+          POSTGRES_USER: helpsites_test
+          POSTGRES_PASSWORD: temba
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install pg_restore and zstd
+        # pg_restore loads the test dump; zstd must be installed before the cache step so actions/cache uses fast
+        # multithreaded zstd compression instead of falling back to single-threaded gzip
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends postgresql-client zstd
+
+      - name: Get Go cache paths
+        id: go-cache-paths
+        run: |
+          echo "gomodcache=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
+          echo "gocache=$(go env GOCACHE)" >> $GITHUB_OUTPUT
+          echo "goversion=$(go env GOVERSION)" >> $GITHUB_OUTPUT
+
+      - name: Cache Go modules and build cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ steps.go-cache-paths.outputs.gomodcache }}
+            ${{ steps.go-cache-paths.outputs.gocache }}
+          key: go-${{ steps.go-cache-paths.outputs.goversion }}-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            go-${{ steps.go-cache-paths.outputs.goversion }}-
+            go-
+
+      - name: Run tests
+        run: go test -cover ./...

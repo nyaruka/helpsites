@@ -1,0 +1,18 @@
+# General
+*~
+.DS_Store
+.vscode/
+.devcontainer
+deploy
+
+# AI
+.claude/
+CLAUDE.md
+CODEX.md
+AGENTS.md
+
+# Go
+coverage.text
+
+# Project specific
+/helpsites

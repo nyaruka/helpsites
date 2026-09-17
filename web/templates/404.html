@@ -1,0 +1,8 @@
+{{ define "title" }}{{ tr "Page not found" }} | {{ .Site.Title }}{{ end }}
+{{ define "content" }}
+  <header class="page-header not-found">
+    <h1>{{ tr "Page not found" }}</h1>
+    <p class="lead">{{ tr "The page you're looking for isn't here. It may have moved, or been unpublished." }}</p>
+    <a class="button" href="{{ .Prefix }}/">{{ tr "Back to the home page" }}</a>
+  </header>
+{{ end }}
