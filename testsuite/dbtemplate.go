@@ -198,7 +198,8 @@ func restoreDump(ctx context.Context, dbName string) error {
 	}
 	defer dump.Close()
 
-	cmd := exec.CommandContext(ctx, "pg_restore", "-h", "postgres", "-U", "helpsites_test", "-d", dbName, "--no-password")
+	// ownership and grants are left out: the dump's objects belong to a role that only exists where it was made
+	cmd := exec.CommandContext(ctx, "pg_restore", "-h", "postgres", "-U", "helpsites_test", "-d", dbName, "--no-password", "--no-owner", "--no-privileges")
 	cmd.Stdin = dump
 	cmd.Env = append(os.Environ(), "PGPASSWORD=temba")
 
