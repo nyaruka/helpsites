@@ -1,4 +1,6 @@
-# Helpsites
+![Helpsites](.github/banner.svg)
+
+[![Build Status](https://github.com/nyaruka/helpsites/workflows/CI/badge.svg)](https://github.com/nyaruka/helpsites/actions?query=workflow%3ACI)
 
 Serves the platform's help sites: the public face of a workspace's helpdesk, read on a domain of the
 workspace's own (`help.example.com`, pointed here by CNAME). Helpsites terminates TLS for those domains,
