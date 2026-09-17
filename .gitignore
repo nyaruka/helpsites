@@ -4,6 +4,7 @@
 .vscode/
 .devcontainer
 deploy
+fabfile.py
 
 # AI
 .claude/
