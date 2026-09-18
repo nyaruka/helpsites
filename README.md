@@ -22,10 +22,14 @@ lists them. Three listeners:
 - **HTTP** (80) — the health check at `/healthz`, ACME HTTP-01 challenges, and a redirect to HTTPS
 - **internal** (8031) — `/hi/*`, the previews the platform proxies for a workspace looking at its own site
 
+Certificates from Let's Encrypt are kept in a DynamoDB table shared by every instance; a local run can skip
+the CA altogether with self-signed certificates. `-help` describes the settings.
+
 ## Testing
 
-The suite is integration-level: it needs a Postgres it can create databases in, a Valkey, and `pg_restore`
-on the path to load `testsuite/testdata/postgres.dump`.
+The suite is integration-level: it needs a Postgres it can create databases in, a Valkey, a DynamoDB it can
+create tables in (the suite's are prefixed `Test`), and `pg_restore` on the path to load
+`testsuite/testdata/postgres.dump`.
 
 ```
 go test ./...

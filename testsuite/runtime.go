@@ -31,9 +31,6 @@ var binProcID = sync.OnceValue(func() string {
 	return hex.EncodeToString(b)
 })
 
-// the DynamoDB table tests keep certificates in, created on first use - see dynamo.go
-const DynamoTable = "helpsites-test-certs"
-
 // Runtime returns the various runtime things a test might need
 func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	// each test gets its own database cloned from a template built from our dump - see dbtemplate.go
@@ -48,8 +45,8 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.DB = fmt.Sprintf(dbTestDSNFormat, dbName)
 	cfg.Valkey = fmt.Sprintf(vkTestDSNFormat, slotVKDB(slot))
 	cfg.TLSMode = runtime.TLSModeSelfSigned
+	cfg.DynamoTablePrefix = "Test"
 	cfg.DynamoEndpoint = "http://dynamodb:8000"
-	cfg.DynamoTable = DynamoTable
 
 	// AWS SDK default chain reads these - used by the DynamoDB client
 	t.Setenv("AWS_ACCESS_KEY_ID", "root")

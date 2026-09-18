@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/nyaruka/helpsites/core/certs"
+	"github.com/nyaruka/helpsites/runtime"
 	"github.com/nyaruka/helpsites/testsuite"
 	"github.com/nyaruka/helpsites/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
@@ -62,11 +63,10 @@ func TestManager(t *testing.T) {
 
 func TestManagerACME(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
+	testsuite.EnsureDynamoTable(t, rt)
 
-	// an ACME manager can be built with certificates on disk, and answers challenges on the HTTP handler
-	rt.Config.TLSMode = "acme"
-	rt.Config.DynamoTable = ""
-	rt.Config.CertsDir = t.TempDir()
+	// an ACME manager keeps certificates in DynamoDB, and answers challenges on the HTTP handler
+	rt.Config.TLSMode = runtime.TLSModeACME
 
 	mgr, err := certs.NewManager(rt)
 	require.NoError(t, err)

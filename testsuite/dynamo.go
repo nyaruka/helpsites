@@ -17,7 +17,7 @@ func EnsureDynamoTable(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
 	ctx := context.Background()
-	table := aws.String(rt.Config.DynamoTable)
+	table := aws.String(rt.Config.CertsTable())
 
 	_, err := rt.Dynamo.DescribeTable(ctx, &dynamodb.DescribeTableInput{TableName: table})
 	var notFound *types.ResourceNotFoundException
