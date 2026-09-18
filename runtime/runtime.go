@@ -19,7 +19,7 @@ type Runtime struct {
 
 	DB     *sqlx.DB
 	VK     *valkey.Pool
-	Dynamo *dynamodb.Client // nil when certificates are kept on disk
+	Dynamo *dynamodb.Client // nil unless certificates are kept in DynamoDB
 
 	HTTP *HTTP
 }
@@ -41,7 +41,7 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 		return nil, fmt.Errorf("error creating Valkey pool: %w", err)
 	}
 
-	if cfg.DynamoTable != "" {
+	if cfg.UsesDynamo() {
 		// the AWS service constructors resolve credentials and region from the SDK default chain (env
 		// vars, instance/task IAM role, shared config/credentials files, etc.)
 		rt.Dynamo, err = dynamo.NewClient(context.Background(), cfg.DynamoEndpoint)

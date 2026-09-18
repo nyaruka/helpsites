@@ -55,8 +55,8 @@ func NewManager(rt *runtime.Runtime) (*Manager, error) {
 
 	case runtime.TLSModeACME:
 		var storage certmagic.Storage
-		if cfg.DynamoTable != "" {
-			storage = NewDynamoStorage(rt.Dynamo, cfg.DynamoTable)
+		if cfg.CertsStorage == runtime.CertsStorageDynamo {
+			storage = NewDynamoStorage(rt.Dynamo, cfg.CertsTable())
 		} else {
 			storage = &certmagic.FileStorage{Path: cfg.CertsDir}
 		}

@@ -18,6 +18,12 @@ const (
 	ACMECAStaging    = "staging"
 )
 
+// Certificate storages, for ACME mode
+const (
+	CertsStorageDynamo = "dynamo" // a DynamoDB table, shared by every instance
+	CertsStorageDisk   = "disk"   // a directory, for a single local instance
+)
+
 // Config is our top level configuration object
 type Config struct {
 	DB     string `validate:"url,startswith=postgres:"                    help:"URL for the platform's Postgres database"`
@@ -30,13 +36,14 @@ type Config struct {
 	InternalAddress string `help:"the address the internal listener will bind to, empty means all interfaces"`
 	InternalPort    int    `help:"the port the internal listener will listen on"`
 
-	TLSMode        string `validate:"eq=acme|eq=selfsigned"      help:"how certificates are obtained: acme, or selfsigned for local development"`
-	ACMECA         string `validate:"eq=production|eq=staging"   help:"which Let's Encrypt CA to use: production, or staging while testing a deployment"`
-	ACMEEmail      string `validate:"omitempty,email"            help:"the contact email for the ACME account, where the CA writes about certificates it couldn't renew"`
-	DynamoTable    string `help:"the DynamoDB table certificates are kept in, shared by every instance; empty keeps them on disk in CertsDir"`
-	DynamoEndpoint string `help:"DynamoDB service endpoint, empty for the SDK default"`
-	CertsDir       string `help:"the directory certificates are kept in when DynamoTable is empty"`
-	DomainsRefresh int    `validate:"min=1"                      help:"how often, in seconds, the set of verified site domains is reloaded from the database"`
+	TLSMode           string `validate:"eq=acme|eq=selfsigned"      help:"how certificates are obtained: acme, or selfsigned for local development"`
+	ACMECA            string `validate:"eq=production|eq=staging"   help:"which Let's Encrypt CA to use: production, or staging while testing a deployment"`
+	ACMEEmail         string `validate:"omitempty,email"            help:"the contact email for the ACME account, where the CA writes about certificates it couldn't renew"`
+	CertsStorage      string `validate:"eq=dynamo|eq=disk"          help:"where ACME certificates are kept: dynamo for a table shared by every instance, or disk for a local run"`
+	DynamoTablePrefix string `help:"the prefix of the DynamoDB table names, e.g. Temba keeps certificates in TembaCerts"`
+	DynamoEndpoint    string `help:"DynamoDB service endpoint, empty for the SDK default"`
+	CertsDir          string `help:"the directory certificates are kept in when CertsStorage is disk"`
+	DomainsRefresh    int    `validate:"min=1"                      help:"how often, in seconds, the set of verified site domains is reloaded from the database"`
 
 	AppHost           string `help:"the host of the platform itself, which the chat widget on a site is loaded from and talks to"`
 	MailroomURL       string `validate:"omitempty,url" help:"the base URL of mailroom, for semantic search; empty disables it"`
@@ -62,10 +69,12 @@ func NewDefaultConfig() *Config {
 		InternalAddress: "",
 		InternalPort:    8031,
 
-		TLSMode:        TLSModeACME,
-		ACMECA:         ACMECAProduction,
-		CertsDir:       "./_certs",
-		DomainsRefresh: 30,
+		TLSMode:           TLSModeACME,
+		ACMECA:            ACMECAProduction,
+		CertsStorage:      CertsStorageDynamo,
+		DynamoTablePrefix: "Temba",
+		CertsDir:          "./_certs",
+		DomainsRefresh:    30,
 
 		AppHost: "localhost.textit.com",
 
@@ -79,4 +88,14 @@ func NewDefaultConfig() *Config {
 // in a test) should be parsed before being handed to NewRuntime.
 func (c *Config) Parse() error {
 	return utils.Validate(c)
+}
+
+// CertsTable returns the name of the DynamoDB table certificates are kept in
+func (c *Config) CertsTable() string {
+	return c.DynamoTablePrefix + "Certs"
+}
+
+// UsesDynamo returns whether this configuration keeps certificates in DynamoDB, which only ACME mode does
+func (c *Config) UsesDynamo() bool {
+	return c.TLSMode == TLSModeACME && c.CertsStorage == CertsStorageDynamo
 }
