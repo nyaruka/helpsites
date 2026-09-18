@@ -48,7 +48,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.DynamoTablePrefix = "Test"
 	cfg.DynamoEndpoint = "http://dynamodb:8000"
 
-	// AWS SDK default chain reads these - used by the DynamoDB client in dynamo.go
+	// AWS SDK default chain reads these - used by the DynamoDB client
 	t.Setenv("AWS_ACCESS_KEY_ID", "root")
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "tembatemba")
 	t.Setenv("AWS_REGION", "us-east-1")

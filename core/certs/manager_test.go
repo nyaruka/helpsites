@@ -63,11 +63,10 @@ func TestManager(t *testing.T) {
 
 func TestManagerACME(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
+	testsuite.EnsureDynamoTable(t, rt)
 
-	// an ACME manager can be built with certificates on disk, and answers challenges on the HTTP handler
+	// an ACME manager keeps certificates in DynamoDB, and answers challenges on the HTTP handler
 	rt.Config.TLSMode = runtime.TLSModeACME
-	rt.Config.CertsStorage = runtime.CertsStorageDisk
-	rt.Config.CertsDir = t.TempDir()
 
 	mgr, err := certs.NewManager(rt)
 	require.NoError(t, err)

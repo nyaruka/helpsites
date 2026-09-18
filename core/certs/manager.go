@@ -54,12 +54,7 @@ func NewManager(rt *runtime.Runtime) (*Manager, error) {
 		m.selfSigner = signer
 
 	case runtime.TLSModeACME:
-		var storage certmagic.Storage
-		if cfg.CertsStorage == runtime.CertsStorageDynamo {
-			storage = NewDynamoStorage(rt.Dynamo, cfg.CertsTable())
-		} else {
-			storage = &certmagic.FileStorage{Path: cfg.CertsDir}
-		}
+		storage := NewDynamoStorage(rt.Dynamo, cfg.CertsTable())
 
 		ca := certmagic.LetsEncryptProductionCA
 		if cfg.ACMECA == runtime.ACMECAStaging {

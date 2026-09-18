@@ -22,8 +22,8 @@ lists them. Three listeners:
 - **HTTP** (80) — the health check at `/healthz`, ACME HTTP-01 challenges, and a redirect to HTTPS
 - **internal** (8031) — `/hi/*`, the previews the platform proxies for a workspace looking at its own site
 
-Certificates from Let's Encrypt are kept in a DynamoDB table shared by every instance, or on disk for a local
-run; a local run can also skip the CA altogether with self-signed certificates. `-help` describes the settings.
+Certificates from Let's Encrypt are kept in a DynamoDB table shared by every instance; a local run can skip
+the CA altogether with self-signed certificates. `-help` describes the settings.
 
 ## Testing
 

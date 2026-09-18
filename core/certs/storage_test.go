@@ -14,9 +14,9 @@ import (
 
 func TestDynamoStorage(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-	client := testsuite.EnsureDynamoTable(t, rt)
+	testsuite.EnsureDynamoTable(t, rt)
 
-	s := certs.NewDynamoStorage(client, rt.Config.CertsTable())
+	s := certs.NewDynamoStorage(rt.Dynamo, rt.Config.CertsTable())
 
 	// nothing there to start with
 	_, err := s.Load(ctx, "certs/example.com/cert.pem")

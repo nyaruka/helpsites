@@ -13,21 +13,7 @@ func TestConfig(t *testing.T) {
 	require.NoError(t, cfg.Parse())
 
 	assert.Equal(t, "TembaCerts", cfg.CertsTable())
-	assert.True(t, cfg.UsesDynamo())
 
 	cfg.DynamoTablePrefix = "Test"
 	assert.Equal(t, "TestCerts", cfg.CertsTable())
-
-	cfg.CertsStorage = runtime.CertsStorageDisk
-	require.NoError(t, cfg.Parse())
-	assert.False(t, cfg.UsesDynamo())
-
-	// self-signed mode never touches storage
-	cfg.CertsStorage = runtime.CertsStorageDynamo
-	cfg.TLSMode = runtime.TLSModeSelfSigned
-	require.NoError(t, cfg.Parse())
-	assert.False(t, cfg.UsesDynamo())
-
-	cfg.CertsStorage = "s3"
-	assert.Error(t, cfg.Parse())
 }
