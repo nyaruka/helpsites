@@ -1,9 +1,12 @@
 package models
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"math"
+	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -26,6 +29,20 @@ const (
 	DefaultHeaderColor  = "#ffffff"
 )
 
+// ColorStyle is what an entry of the helpdesk's palette looks like on a page - its fill, and the text and border drawn
+// from it - worked out by the platform whenever the palette changes
+type ColorStyle struct {
+	Fill   string `json:"fill"`
+	Text   string `json:"text"`
+	Border string `json:"border"`
+}
+
+// ColumnColor is a palette entry as a page styles the columns of articles that use it, by its index
+type ColumnColor struct {
+	Index int
+	ColorStyle
+}
+
 // Site is a help site: the public face of a workspace's helpdesk, served on a domain of the workspace's own
 type Site struct {
 	ID               SiteID            `json:"id"`
@@ -41,10 +58,11 @@ type Site struct {
 	ChatChannel      string            `json:"chat_channel"` // the uuid of the WebChat channel the site chats through, if any and still active
 
 	Source struct {
-		ID            SourceID   `json:"id"`
-		UUID          string     `json:"uuid"`
-		IsActive      bool       `json:"is_active"`
-		LastIndexedOn *time.Time `json:"last_indexed_on"`
+		ID            SourceID              `json:"id"`
+		UUID          string                `json:"uuid"`
+		IsActive      bool                  `json:"is_active"`
+		LastIndexedOn *time.Time            `json:"last_indexed_on"`
+		ColorStyles   map[string]ColorStyle `json:"color_styles"` // what each palette entry looks like, by its index
 	} `json:"source"`
 
 	Org struct {
@@ -62,7 +80,10 @@ SELECT ROW_TO_JSON(r) FROM (
             SELECT c.uuid FROM channels_channel c
              WHERE c.org_id = o.id AND c.uuid::text = s.config->>'chat_channel' AND c.channel_type = 'WCH' AND c.is_active
         ) AS chat_channel,
-        JSON_BUILD_OBJECT('id', k.id, 'uuid', k.uuid, 'is_active', k.is_active, 'last_indexed_on', k.last_indexed_on) AS source,
+        JSON_BUILD_OBJECT(
+            'id', k.id, 'uuid', k.uuid, 'is_active', k.is_active, 'last_indexed_on', k.last_indexed_on,
+            'color_styles', COALESCE(k.config->'color_styles', '{}')
+        ) AS source,
         JSON_BUILD_OBJECT('id', o.id, 'is_active', o.is_active, 'features', o.features) AS org
       FROM knowledge_helpsite s
       JOIN knowledge_knowledgesource k ON k.id = s.source_id
@@ -162,6 +183,26 @@ func (s *Site) HeaderTextColor() string {
 		return "#ffffff"
 	}
 	return "#1f2430"
+}
+
+var hexColorRegex = regexp.MustCompile(`^#[0-9a-fA-F]{3,8}$`)
+
+// ColumnColors returns the helpdesk's palette as a page styles the columns of its articles with, in index order. What
+// goes into the page's stylesheet has to be an index and colors, so anything else is left out.
+func (s *Site) ColumnColors() []ColumnColor {
+	colors := make([]ColumnColor, 0, len(s.Source.ColorStyles))
+	for key, style := range s.Source.ColorStyles {
+		index, err := strconv.Atoi(key)
+		if err != nil || index < 0 || strconv.Itoa(index) != key {
+			continue
+		}
+		if !hexColorRegex.MatchString(style.Fill) || !hexColorRegex.MatchString(style.Text) || !hexColorRegex.MatchString(style.Border) {
+			continue
+		}
+		colors = append(colors, ColumnColor{Index: index, ColorStyle: style})
+	}
+	slices.SortFunc(colors, func(a, b ColumnColor) int { return cmp.Compare(a.Index, b.Index) })
+	return colors
 }
 
 // NormalizePath returns the form an old address is kept and looked up in - lowercased, without any query or

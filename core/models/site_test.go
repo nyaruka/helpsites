@@ -31,6 +31,8 @@ func TestLoadSite(t *testing.T) {
 	assert.Equal(t, testdb.Org1, site.Org.ID)
 	assert.False(t, site.Source.IsActive == false)
 
+	assert.Equal(t, []models.ColumnColor{}, site.ColumnColors())
+
 	assert.False(t, unverified.IsAvailable())
 	assert.Equal(t, models.DefaultPrimaryColor, unverified.PrimaryColor())
 	assert.Equal(t, "#1f2430", unverified.HeaderTextColor())
@@ -95,4 +97,25 @@ func TestIsDarkColor(t *testing.T) {
 	assert.False(t, models.IsDarkColor("#ffffff"))
 	assert.False(t, models.IsDarkColor("#ffff00"))
 	assert.False(t, models.IsDarkColor("red"))
+}
+
+func TestColumnColors(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	site := testdb.InsertSite(t, rt, testdb.Org1, "Nyaruka Help", testdb.SiteOptions{
+		ColorStyles: map[string]models.ColorStyle{
+			"10": {Fill: "#123456", Text: "#edf2f8", Border: "#07101a"},
+			"2":  {Fill: "#ffe8a3", Text: "#6b581f", Border: "#d4be7d"},
+			"x":  {Fill: "#ffe8a3", Text: "#6b581f", Border: "#d4be7d"}, // not an index
+			"01": {Fill: "#ffe8a3", Text: "#6b581f", Border: "#d4be7d"}, // not an index as an article embeds one
+			"3":  {Fill: "red;}", Text: "#6b581f", Border: "#d4be7d"},   // not a color
+			"4":  {Fill: "#ffe8a3", Text: "#6b581f", Border: "url(x)"},  // nor this
+		},
+	})
+
+	// what a page's stylesheet gets is only indexes and colors, in index order
+	assert.Equal(t, []models.ColumnColor{
+		{Index: 2, ColorStyle: models.ColorStyle{Fill: "#ffe8a3", Text: "#6b581f", Border: "#d4be7d"}},
+		{Index: 10, ColorStyle: models.ColorStyle{Fill: "#123456", Text: "#edf2f8", Border: "#07101a"}},
+	}, site.ColumnColors())
 }

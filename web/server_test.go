@@ -26,6 +26,7 @@ func setupSite(t *testing.T, rt *runtime.Runtime) (*models.Site, map[string]mode
 	testdb.AddFeature(t, rt, testdb.Org1, models.FeatureAgents)
 	site := testdb.InsertSite(t, rt, testdb.Org1, "Nyaruka Help", testdb.SiteOptions{
 		Domain: "help.nyaruka.com", Verified: true, Enabled: true, Tagline: "Answers for everyone", Footer: "© Nyaruka",
+		ColorStyles: map[string]models.ColorStyle{"1": {Fill: "#ffe8a3", Text: "#6b581f", Border: "#d4be7d"}},
 	})
 	source := site.Source.ID
 
@@ -38,7 +39,11 @@ func setupSite(t *testing.T, rt *runtime.Runtime) (*models.Site, map[string]mode
 		Headings: []models.Heading{{ID: "hello", Text: "Hello"}},
 	})
 	ids["setup"] = testdb.InsertArticle(t, rt, source, ids["started"], "Setup", "setup", testdb.ArticleOptions{BodyHTML: "<p>Set things up.</p>"})
-	ids["invoices"] = testdb.InsertArticle(t, rt, source, ids["billing"], "Invoices", "invoices", testdb.ArticleOptions{BodyHTML: "<p>About invoices.</p>"})
+	ids["invoices"] = testdb.InsertArticle(t, rt, source, ids["billing"], "Invoices", "invoices", testdb.ArticleOptions{
+		BodyHTML: `<p>About invoices.</p>` +
+			`<p><img alt="shot" class="size-small layout-inline" src="storage:orgs/1/knowledge/a b.png#size=small&amp;layout=inline"> <img alt="ext" src="https://example.com/x.png"></p>` +
+			`<table><colgroup><col class="bubble-1"></colgroup><thead><tr><th></th></tr></thead><tbody><tr><td class="bubble-1 bordered">one</td></tr></tbody></table>`,
+	})
 
 	// the welcome article links to setup by uuid
 	setupUUID := testdb.ArticleUUID(t, rt, ids["setup"])
@@ -130,6 +135,17 @@ func TestSitePages(t *testing.T) {
 	// and it's now popular
 	resp, body = get(t, h, "help.nyaruka.com", "/", "help.nyaruka.com")
 	assert.Contains(t, body, "Popular articles")
+
+	// an article's uploaded images resolve against where storage serves them from, key escaped and fragment kept,
+	// while an image with an address of its own is left alone - and its columns are styled from the palette, which
+	// every page carries
+	resp, body = get(t, h, "help.nyaruka.com", "/billing/invoices/", "help.nyaruka.com")
+	assert.Equal(t, 200, resp.StatusCode)
+	assert.Contains(t, body, `src="https://storage.example.com/bucket/orgs/1/knowledge/a%20b.png#size=small&amp;layout=inline"`)
+	assert.Contains(t, body, `src="https://example.com/x.png"`)
+	assert.NotContains(t, body, "storage:")
+	assert.Contains(t, body, `<td class="bubble-1 bordered">one</td>`)
+	assert.Contains(t, body, ".bubble-1 {\n        --bubble-fill: #ffe8a3;\n        --bubble-text: #6b581f;\n        --bubble-border: #d4be7d;\n      }")
 
 	resp, _ = get(t, h, "help.nyaruka.com", "/getting-started/nope/", "help.nyaruka.com")
 	assert.Equal(t, 404, resp.StatusCode)

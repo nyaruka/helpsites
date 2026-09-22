@@ -15,6 +15,15 @@
         --header-text: {{ .Site.HeaderTextColor | css }};
       }
 
+      /* what each palette entry the articles embed looks like, for article.css to style columns with */
+      {{- range .Site.ColumnColors }}
+      .bubble-{{ .Index }} {
+        --bubble-fill: {{ .Fill | css }};
+        --bubble-text: {{ .Text | css }};
+        --bubble-border: {{ .Border | css }};
+      }
+      {{- end }}
+
       /* the chat widget takes the site's accent */
       temba-webchat {
         --webchat-primary: var(--primary);
