@@ -1,27 +1,32 @@
 package certs
 
 import (
+	"bytes"
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/pem"
 	"fmt"
 	"math/big"
-	"sync"
 	"time"
+
+	"github.com/caddyserver/certmagic"
 )
 
-// selfSigner signs a certificate for each name asked of it with an in-process CA, for local development where no
-// public CA can reach us. Nothing it makes is trusted by anything, so clients have to be told to skip verification.
-type selfSigner struct {
-	ca    *x509.Certificate
-	key   *ecdsa.PrivateKey
-	certs sync.Map // name -> *tls.Certificate
+// selfSignedIssuer is a CertMagic issuer which signs certificates with an in-process CA, for local development
+// where no public CA can reach us. Only the CA is faked: what it signs is kept, locked and reloaded from storage
+// like any other certificate, so a local run exercises the same path as a deployed one. Nothing it signs is trusted
+// by anything, so clients have to be told to skip verification - which also covers certificates reloaded after a
+// restart, which chain to a CA that no longer exists.
+type selfSignedIssuer struct {
+	ca  *x509.Certificate
+	key *ecdsa.PrivateKey
 }
 
-func newSelfSigner() (*selfSigner, error) {
+func newSelfSignedIssuer() (*selfSignedIssuer, error) {
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return nil, err
@@ -45,40 +50,45 @@ func newSelfSigner() (*selfSigner, error) {
 		return nil, err
 	}
 
-	return &selfSigner{ca: ca, key: key}, nil
+	return &selfSignedIssuer{ca: ca, key: key}, nil
 }
 
-// certificate returns a certificate for the given name, signing one the first time it's asked for
-func (s *selfSigner) certificate(name string) (*tls.Certificate, error) {
-	if cert, ok := s.certs.Load(name); ok {
-		return cert.(*tls.Certificate), nil
-	}
-
-	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *selfSignedIssuer) Issue(
+	ctx context.Context, csr *x509.CertificateRequest,
+) (*certmagic.IssuedCertificate, error) {
 	serial, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
 		return nil, err
 	}
 
+	subject := csr.Subject
+	if subject.CommonName == "" && len(csr.DNSNames) > 0 {
+		subject.CommonName = csr.DNSNames[0]
+	}
+
 	template := &x509.Certificate{
 		SerialNumber: serial,
-		Subject:      pkix.Name{CommonName: name},
-		DNSNames:     []string{name},
+		Subject:      subject,
+		DNSNames:     csr.DNSNames,
 		NotBefore:    time.Now().Add(-time.Hour),
 		NotAfter:     time.Now().AddDate(1, 0, 0),
 		KeyUsage:     x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 	}
-	der, err := x509.CreateCertificate(rand.Reader, template, s.ca, &key.PublicKey, s.key)
+	der, err := x509.CreateCertificate(rand.Reader, template, s.ca, csr.PublicKey, s.key)
 	if err != nil {
-		return nil, fmt.Errorf("error signing certificate for %s: %w", name, err)
+		return nil, fmt.Errorf("error signing certificate for %v: %w", csr.DNSNames, err)
 	}
 
-	cert := &tls.Certificate{Certificate: [][]byte{der, s.ca.Raw}, PrivateKey: key}
-	s.certs.Store(name, cert)
-	return cert, nil
+	var chain bytes.Buffer
+	for _, c := range [][]byte{der, s.ca.Raw} {
+		if err := pem.Encode(&chain, &pem.Block{Type: "CERTIFICATE", Bytes: c}); err != nil {
+			return nil, err
+		}
+	}
+	return &certmagic.IssuedCertificate{Certificate: chain.Bytes()}, nil
 }
+
+func (s *selfSignedIssuer) IssuerKey() string { return "selfsigned" }
+
+var _ certmagic.Issuer = (*selfSignedIssuer)(nil)

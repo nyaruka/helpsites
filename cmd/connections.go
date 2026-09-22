@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/helpsites/runtime"
 )
 
@@ -32,17 +31,6 @@ func testConnections(rt *runtime.Runtime) {
 		log.Error("valkey not reachable", "error", err)
 	} else {
 		log.Info("valkey ok")
-	}
-
-	// test DynamoDB, where certificates are kept. Certificates are obtained on demand, so without this a table we
-	// can't reach isn't noticed until the first handshake for a new domain. Skipped when we're self-signing, as
-	// then nothing ever touches it.
-	if rt.Config.TLSMode != runtime.TLSModeSelfSigned {
-		if err := dynamo.Test(ctx, rt.Dynamo, rt.Config.CertsTable()); err != nil {
-			log.Error("dynamodb not reachable", "error", err)
-		} else {
-			log.Info("dynamodb ok")
-		}
 	}
 
 	// test mailroom, if we're configured to use it

@@ -43,14 +43,31 @@ func TestManager(t *testing.T) {
 	x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
 	require.NoError(t, err)
 	assert.Equal(t, []string{"www.help.nyaruka.com"}, x509Cert.DNSNames)
+	assert.Equal(t, "helpsites development CA", x509Cert.Issuer.CommonName)
 
 	// and is the same one next time
 	again, err := tc.GetCertificate(&tls.ClientHelloInfo{ServerName: "www.help.nyaruka.com"})
 	require.NoError(t, err)
-	assert.Same(t, cert, again)
+	assert.Equal(t, cert.Certificate, again.Certificate)
 
 	_, err = tc.GetCertificate(&tls.ClientHelloInfo{ServerName: "help.other.com"})
 	assert.ErrorIs(t, err, certs.ErrNotAllowed)
+
+	// the certificate was kept in storage, like one from a real CA would be...
+	storage := certs.NewDynamoStorage(rt.Dynamo, rt.Config.CertsTable())
+	assert.True(t, storage.Exists(ctx, "certificates/selfsigned/www.help.nyaruka.com/www.help.nyaruka.com.crt"))
+	assert.True(t, storage.Exists(ctx, "certificates/selfsigned/www.help.nyaruka.com/www.help.nyaruka.com.key"))
+
+	// ...so another instance serves the same certificate rather than signing its own
+	mgr2, err := certs.NewManager(rt)
+	require.NoError(t, err)
+	require.NoError(t, mgr2.Start())
+	defer mgr2.Stop()
+
+	tc2 := mgr2.TLSConfig()
+	loaded, err := tc2.GetCertificate(&tls.ClientHelloInfo{ServerName: "www.help.nyaruka.com"})
+	require.NoError(t, err)
+	assert.Equal(t, cert.Certificate, loaded.Certificate)
 
 	// a newly verified domain is picked up on refresh
 	_, err = rt.DB.ExecContext(ctx, `UPDATE knowledge_helpsite SET domain_verified_on = NOW() WHERE domain = 'help.other.com'`)
@@ -63,7 +80,6 @@ func TestManager(t *testing.T) {
 
 func TestManagerACME(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
-	testsuite.EnsureDynamoTable(t, rt)
 
 	// an ACME manager keeps certificates in DynamoDB, and answers challenges on the HTTP handler
 	rt.Config.TLSMode = runtime.TLSModeACME
@@ -79,5 +95,5 @@ func TestManagerACME(t *testing.T) {
 	assert.Contains(t, tc.NextProtos, "h2")
 
 	_, err = tc.GetCertificate(&tls.ClientHelloInfo{ServerName: "nobody.example.com"})
-	assert.Error(t, err) // not a site's, so no certificate is obtained for it
+	assert.ErrorIs(t, err, certs.ErrNotAllowed) // not a site's, so no certificate is obtained for it
 }
