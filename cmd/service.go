@@ -36,6 +36,9 @@ func Service(cfg *runtime.Config, version, date string, logHandler slog.Handler)
 		return err
 	}
 
+	// log what we can and can't reach before we start doing anything with it
+	testConnections(rt)
+
 	svc, err := startService(rt)
 	if err != nil {
 		return err
