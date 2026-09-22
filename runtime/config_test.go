@@ -10,6 +10,9 @@ import (
 
 func TestConfig(t *testing.T) {
 	cfg := runtime.NewDefaultConfig()
+	assert.ErrorContains(t, cfg.Parse(), "StorageURL")
+
+	cfg.StorageURL = "https://storage.example.com/bucket/"
 	require.NoError(t, cfg.Parse())
 
 	assert.Equal(t, "TembaCerts", cfg.CertsTable())

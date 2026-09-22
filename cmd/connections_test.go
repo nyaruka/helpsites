@@ -22,6 +22,7 @@ func TestTestConnectionsUnreachable(t *testing.T) {
 	cfg := runtime.NewDefaultConfig()
 	cfg.DB = "postgres://temba:temba@127.0.0.1:1/temba?sslmode=disable"
 	cfg.Valkey = "valkey://127.0.0.1:1/0"
+	cfg.StorageURL = "https://storage.example.com/bucket/"
 	require.NoError(t, cfg.Parse())
 
 	rt, err := runtime.NewRuntime(cfg)

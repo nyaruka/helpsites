@@ -38,7 +38,7 @@ type Config struct {
 	DomainsRefresh    int    `validate:"min=1"                      help:"how often, in seconds, the set of verified site domains is reloaded from the database"`
 
 	AppHost           string `help:"the host of the platform itself, which the chat widget on a site is loaded from and talks to"`
-	StorageURL        string `validate:"url"           help:"the base URL uploaded images are served from, which an article's storage: images resolve against"`
+	StorageURL        string `validate:"required,url"  help:"the base URL uploaded images are served from, which an article's storage: images resolve against"`
 	MailroomURL       string `validate:"omitempty,url" help:"the base URL of mailroom, for semantic search; empty disables it"`
 	MailroomTLSName   string `help:"the name mailroom's certificate is verified against, when its URL doesn't carry it"`
 	MailroomAuthToken string `help:"the authentication token for mailroom's internal endpoints"`
@@ -67,8 +67,7 @@ func NewDefaultConfig() *Config {
 		DynamoTablePrefix: "Temba",
 		DomainsRefresh:    30,
 
-		AppHost:    "localhost.textit.com",
-		StorageURL: "https://localhost.textit.com:8433/temba-default",
+		AppHost: "localhost.textit.com",
 
 		DeploymentID: "dev",
 		LogLevel:     slog.LevelWarn,
