@@ -28,12 +28,8 @@ type Manager struct {
 	rt      *runtime.Runtime
 	domains atomic.Pointer[map[string]bool]
 
-	// for ACME
 	config *certmagic.Config
-	issuer *certmagic.ACMEIssuer
-
-	// for local development
-	selfSigner *selfSigner
+	issuer *certmagic.ACMEIssuer // nil when self-signing
 
 	stop chan struct{}
 	wg   sync.WaitGroup
@@ -45,33 +41,43 @@ func NewManager(rt *runtime.Runtime) (*Manager, error) {
 
 	cfg := rt.Config
 
+	// certificates are kept in DynamoDB whatever signs them, so that a local run exercises the same storage as a
+	// deployed one. The table is created if it's missing - a surprise in a deployment, so it's logged as one.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	created, err := EnsureTable(ctx, rt.Dynamo, cfg.CertsTable())
+	if err != nil {
+		return nil, err
+	}
+	if created {
+		slog.Warn("created certificates table", "comp", "certs", "table", cfg.CertsTable())
+	}
+
+	logger := newZapLogger(slog.Default())
+
+	cache := certmagic.NewCache(certmagic.CacheOptions{
+		GetConfigForCert: func(certmagic.Certificate) (*certmagic.Config, error) { return m.config, nil },
+		Logger:           logger,
+	})
+	m.config = certmagic.New(cache, certmagic.Config{
+		Storage:  NewDynamoStorage(rt.Dynamo, cfg.CertsTable()),
+		OnDemand: &certmagic.OnDemandConfig{DecisionFunc: m.decide},
+		Logger:   logger,
+	})
+
 	switch cfg.TLSMode {
 	case runtime.TLSModeSelfSigned:
-		signer, err := newSelfSigner()
+		issuer, err := newSelfSignedIssuer()
 		if err != nil {
-			return nil, fmt.Errorf("error creating self signer: %w", err)
+			return nil, fmt.Errorf("error creating self-signed issuer: %w", err)
 		}
-		m.selfSigner = signer
+		m.config.Issuers = []certmagic.Issuer{issuer}
 
 	case runtime.TLSModeACME:
-		storage := NewDynamoStorage(rt.Dynamo, cfg.CertsTable())
-
 		ca := certmagic.LetsEncryptProductionCA
 		if cfg.ACMECA == runtime.ACMECAStaging {
 			ca = certmagic.LetsEncryptStagingCA
 		}
-
-		logger := newZapLogger(slog.Default())
-
-		cache := certmagic.NewCache(certmagic.CacheOptions{
-			GetConfigForCert: func(certmagic.Certificate) (*certmagic.Config, error) { return m.config, nil },
-			Logger:           logger,
-		})
-		m.config = certmagic.New(cache, certmagic.Config{
-			Storage:  storage,
-			OnDemand: &certmagic.OnDemandConfig{DecisionFunc: m.decide},
-			Logger:   logger,
-		})
 		m.issuer = certmagic.NewACMEIssuer(m.config, certmagic.ACMEIssuer{
 			CA:     ca,
 			Email:  cfg.ACMEEmail,
@@ -164,20 +170,7 @@ func (m *Manager) decide(ctx context.Context, name string) error {
 
 // TLSConfig returns the TLS configuration for the HTTPS listener
 func (m *Manager) TLSConfig() *tls.Config {
-	var tc *tls.Config
-
-	if m.selfSigner != nil {
-		tc = &tls.Config{
-			GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-				if !m.Allowed(hello.ServerName) {
-					return nil, ErrNotAllowed
-				}
-				return m.selfSigner.certificate(hello.ServerName)
-			},
-		}
-	} else {
-		tc = m.config.TLSConfig()
-	}
+	tc := m.config.TLSConfig()
 
 	tc.MinVersion = tls.VersionTLS12
 

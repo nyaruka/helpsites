@@ -2,44 +2,33 @@ package testsuite
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/nyaruka/helpsites/core/certs"
 	"github.com/nyaruka/helpsites/runtime"
 	"github.com/stretchr/testify/require"
 )
 
-// EnsureDynamoTable creates the certificates table in the test DynamoDB if it doesn't exist, and empties it
-func EnsureDynamoTable(t *testing.T, rt *runtime.Runtime) {
+// ensureDynamoTable creates this binary's certificates table if it doesn't exist, and empties it
+func ensureDynamoTable(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
 	ctx := context.Background()
-	table := aws.String(rt.Config.CertsTable())
+	name := rt.Config.CertsTable()
 
-	_, err := rt.Dynamo.DescribeTable(ctx, &dynamodb.DescribeTableInput{TableName: table})
-	var notFound *types.ResourceNotFoundException
-	if errors.As(err, &notFound) {
-		_, err = rt.Dynamo.CreateTable(ctx, &dynamodb.CreateTableInput{
-			TableName:            table,
-			AttributeDefinitions: []types.AttributeDefinition{{AttributeName: aws.String("Key"), AttributeType: types.ScalarAttributeTypeS}},
-			KeySchema:            []types.KeySchemaElement{{AttributeName: aws.String("Key"), KeyType: types.KeyTypeHash}},
-			BillingMode:          types.BillingModePayPerRequest,
-		})
-
-		// unlike the database and valkey, DynamoDB is shared by every test binary, and packages run in
-		// parallel - so another binary may have created the table since we looked for it
-		var inUse *types.ResourceInUseException
-		if errors.As(err, &inUse) {
-			err = nil
-		}
-	}
+	created, err := certs.EnsureTable(ctx, rt.Dynamo, name)
 	require.NoError(t, err, "error ensuring DynamoDB table")
+	if created {
+		return
+	}
 
-	// empty it
-	paginator := dynamodb.NewScanPaginator(rt.Dynamo, &dynamodb.ScanInput{TableName: table, ProjectionExpression: aws.String("#k"), ExpressionAttributeNames: map[string]string{"#k": "Key"}})
+	table := aws.String(name)
+	paginator := dynamodb.NewScanPaginator(rt.Dynamo, &dynamodb.ScanInput{
+		TableName: table, ProjectionExpression: aws.String("#k"), ExpressionAttributeNames: map[string]string{"#k": "Key"},
+	})
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(ctx)
 		require.NoError(t, err)

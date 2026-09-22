@@ -14,7 +14,6 @@ import (
 
 func TestDynamoStorage(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-	testsuite.EnsureDynamoTable(t, rt)
 
 	s := certs.NewDynamoStorage(rt.Dynamo, rt.Config.CertsTable())
 

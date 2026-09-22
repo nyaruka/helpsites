@@ -12,10 +12,11 @@ import (
 )
 
 // Each test binary claims a slot - a small dense number which multiplexes the resources that are bounded rather than
-// namespaceable: its valkey database (16 + slot, in the 16-31 band reserved for tests). The claim is an advisory lock
-// in Postgres held for the binary's lifetime, so it evaporates when the run that owns it dies - and the slot's valkey
-// database is flushed on claim, clearing anything a dead run left behind. If every slot is taken - concurrently
-// running binaries can saturate the pool - claiming waits for one to free up rather than failing.
+// namespaceable: its valkey database (16 + slot, in the 16-31 band reserved for tests) and its certificates table
+// (prefixed Test<slot>) in the shared DynamoDB emulator. The claim is an advisory lock in Postgres held for the
+// binary's lifetime, so it evaporates when the run that owns it dies - and the slot's valkey database is flushed on
+// claim, clearing anything a dead run left behind. If every slot is taken - concurrently running binaries can
+// saturate the pool - claiming waits for one to free up rather than failing.
 
 const (
 	slotCount    = 16

@@ -31,33 +31,24 @@ func TestTestConnections(t *testing.T) {
 	}))
 	defer broken.Close()
 
-	// self signing and no mailroom, so neither is checked
+	// no mailroom configured, so it isn't checked
 	assert.Equal(t, []string{"db ok", "valkey ok"}, captureLogs(func() { testConnections(rt) }))
 
-	// with ACME we check the certificates table, and we check mailroom whenever it's configured
-	// our own table, so that emptying it can't pull items out from under the certs tests in parallel
-	rt.Config.DynamoTablePrefix = "TestCmd"
-	testsuite.EnsureDynamoTable(t, rt)
-
-	rt.Config.TLSMode = runtime.TLSModeACME
+	// mailroom is checked whenever it's configured
 	rt.Config.MailroomURL = mailroom.URL
 
-	assert.Equal(t, []string{"db ok", "valkey ok", "dynamodb ok", "mailroom ok"},
-		captureLogs(func() { testConnections(rt) }))
+	assert.Equal(t, []string{"db ok", "valkey ok", "mailroom ok"}, captureLogs(func() { testConnections(rt) }))
 
-	// a table we can't reach and a mailroom that won't answer are logged, and we still check everything else
-	rt.Config.DynamoTablePrefix = "Nonexistent"
+	// a mailroom that won't answer is logged, and we still check everything else
 	rt.Config.MailroomURL = broken.URL
 
-	assert.Equal(t, []string{"db ok", "valkey ok", "dynamodb not reachable", "mailroom not reachable"},
-		captureLogs(func() { testConnections(rt) }))
+	assert.Equal(t, []string{"db ok", "valkey ok", "mailroom not reachable"}, captureLogs(func() { testConnections(rt) }))
 }
 
 func TestTestConnectionsUnreachable(t *testing.T) {
 	cfg := runtime.NewDefaultConfig()
 	cfg.DB = "postgres://temba:temba@127.0.0.1:1/temba?sslmode=disable"
 	cfg.Valkey = "valkey://127.0.0.1:1/0"
-	cfg.TLSMode = runtime.TLSModeSelfSigned // so we don't wait on the AWS SDK retrying an unreachable endpoint
 	require.NoError(t, cfg.Parse())
 
 	rt, err := runtime.NewRuntime(cfg)
