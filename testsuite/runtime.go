@@ -53,7 +53,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "tembatemba")
 	t.Setenv("AWS_REGION", "us-east-1")
 	cfg.AppHost = "app.example.com"
-	cfg.PreviewToken = "sesame"
+	cfg.AuthToken = "sesame"
 
 	err := cfg.Parse()
 	require.NoError(t, err)

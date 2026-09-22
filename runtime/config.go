@@ -41,7 +41,7 @@ type Config struct {
 	MailroomURL       string `validate:"omitempty,url" help:"the base URL of mailroom, for semantic search; empty disables it"`
 	MailroomTLSName   string `help:"the name mailroom's certificate is verified against, when its URL doesn't carry it"`
 	MailroomAuthToken string `help:"the authentication token for mailroom's internal endpoints"`
-	PreviewToken      string `help:"the authentication token the platform sends when asking for a preview"`
+	AuthToken         string `help:"the authentication token the platform sends on requests to the internal listener"`
 
 	DeploymentID string     `help:"the deployment identifier to use for metrics"`
 	LogLevel     slog.Level `help:"the logging level helpsites should use"`
