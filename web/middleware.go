@@ -93,13 +93,13 @@ func (s *Server) requireSite(next http.Handler) http.Handler {
 	})
 }
 
-// requirePreviewToken refuses a request to the internal listener without the token the platform sends
-func (s *Server) requirePreviewToken(next http.Handler) http.Handler {
+// requireAuthToken refuses a request to the internal listener without the token the platform sends
+func (s *Server) requireAuthToken(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
 
 		// only checked if a token is configured (might not be for dev environments)
-		if token := s.rt.Config.PreviewToken; token != "" {
+		if token := s.rt.Config.AuthToken; token != "" {
 			if !strings.HasPrefix(auth, "Token ") || !utils.SecretEqual(auth[6:], token) {
 				http.Error(w, "invalid or missing authorization header", http.StatusUnauthorized)
 				return

@@ -77,8 +77,8 @@ func NewServer(rt *runtime.Runtime, certs *certs.Manager) *Server {
 	internalRouter.Use(middleware.Timeout(30 * time.Second))
 	internalRouter.Use(requestLogger("internal"))
 	internalRouter.Get("/", s.handleHealth("internal"))
-	internalRouter.With(s.requirePreviewToken).HandleFunc(internalPrefix+"/preview/{uuid}", s.handlePreview)
-	internalRouter.With(s.requirePreviewToken).HandleFunc(internalPrefix+"/preview/{uuid}/*", s.handlePreview)
+	internalRouter.With(s.requireAuthToken).HandleFunc(internalPrefix+"/preview/{uuid}", s.handlePreview)
+	internalRouter.With(s.requireAuthToken).HandleFunc(internalPrefix+"/preview/{uuid}/*", s.handlePreview)
 
 	cfg := rt.Config
 

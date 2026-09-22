@@ -228,7 +228,7 @@ func TestPreview(t *testing.T) {
 	assert.Equal(t, "noindex", resp.Header.Get("X-Robots-Tag"))
 	assert.Contains(t, body, `<meta name="robots" content="noindex">`)
 	assert.Contains(t, body, "preview-bar")
-	assert.Contains(t, body, `href="/article/"`)
+	assert.Contains(t, body, `href="/article/list/"`)
 	assert.Contains(t, body, `href="/helpsite/preview/getting-started/"`)
 	assert.Contains(t, body, `href="/helpsite/preview/static/css/helpsite.css"`)
 

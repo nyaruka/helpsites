@@ -10,7 +10,7 @@ import (
 const PreviewPrefix = "/helpsite/preview"
 
 // the platform's page for the settings of the site, linked from a preview
-const settingsPath = "/article/"
+const settingsPath = "/article/list/"
 
 // SiteContext is what a request carries about the site it's for: the site itself, and whether it's a preview - which
 // is served under the platform's prefix rather than at the root of the site's domain
