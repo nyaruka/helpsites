@@ -1,3 +1,8 @@
+v26.3.3 (2026-09-22)
+-------------------------
+ * Rename the internal listener's preview token to an auth token
+ * Fix the site settings link
+
 v26.3.2 (2026-09-22)
 -------------------------
  * Move the module to /v26 and replace the built-in Sentry integration with hooks
