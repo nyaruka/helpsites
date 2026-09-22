@@ -28,6 +28,13 @@ func EnsureDynamoTable(t *testing.T, rt *runtime.Runtime) {
 			KeySchema:            []types.KeySchemaElement{{AttributeName: aws.String("Key"), KeyType: types.KeyTypeHash}},
 			BillingMode:          types.BillingModePayPerRequest,
 		})
+
+		// unlike the database and valkey, DynamoDB is shared by every test binary, and packages run in
+		// parallel - so another binary may have created the table since we looked for it
+		var inUse *types.ResourceInUseException
+		if errors.As(err, &inUse) {
+			err = nil
+		}
 	}
 	require.NoError(t, err, "error ensuring DynamoDB table")
 
