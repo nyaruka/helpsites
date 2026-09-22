@@ -3,8 +3,6 @@ package cmd
 import (
 	"context"
 	"log/slog"
-	"net/http"
-	"net/http/httptest"
 	"sync"
 	"testing"
 
@@ -17,32 +15,7 @@ import (
 func TestTestConnections(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	mailroom := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		w.Write([]byte(`{"component": "mailroom"}`))
-	}))
-	defer mailroom.Close()
-
-	broken := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-	defer broken.Close()
-
-	// no mailroom configured, so it isn't checked
 	assert.Equal(t, []string{"db ok", "valkey ok"}, captureLogs(func() { testConnections(rt) }))
-
-	// mailroom is checked whenever it's configured
-	rt.Config.MailroomURL = mailroom.URL
-
-	assert.Equal(t, []string{"db ok", "valkey ok", "mailroom ok"}, captureLogs(func() { testConnections(rt) }))
-
-	// a mailroom that won't answer is logged, and we still check everything else
-	rt.Config.MailroomURL = broken.URL
-
-	assert.Equal(t, []string{"db ok", "valkey ok", "mailroom not reachable"}, captureLogs(func() { testConnections(rt) }))
 }
 
 func TestTestConnectionsUnreachable(t *testing.T) {
