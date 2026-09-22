@@ -1,3 +1,7 @@
+v26.3.1 (2026-09-22)
+-------------------------
+ * Drop the mailroom probe from the startup connection check
+
 v26.3.0 (2026-09-22)
 -------------------------
  * Initial version: on-demand TLS and page rendering for help sites on their own domains
