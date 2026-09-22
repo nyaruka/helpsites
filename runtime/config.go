@@ -44,6 +44,7 @@ type Config struct {
 	PreviewToken      string `help:"the authentication token the platform sends when asking for a preview"`
 
 	DeploymentID string     `help:"the deployment identifier to use for metrics"`
+	SentryDSN    string     `validate:"omitempty,url" help:"the Sentry DSN to report errors and panics to, empty for no reporting"`
 	LogLevel     slog.Level `help:"the logging level helpsites should use"`
 	Version      string     `help:"the version that will be used in request and response headers"`
 }
