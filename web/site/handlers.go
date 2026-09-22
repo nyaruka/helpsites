@@ -4,8 +4,10 @@ package site
 
 import (
 	"context"
+	"html"
 	"html/template"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -136,7 +138,7 @@ func handleArticle(ctx context.Context, rt *runtime.Runtime, r *http.Request, w 
 
 	page.Section = section
 	page.Article = article
-	page.HTML = ResolveLinks(article.BodyHTML, targets)
+	page.HTML = ResolveLinks(ResolveImages(article.BodyHTML, rt.Config.StorageURL), targets)
 	page.Siblings = siblings
 	return web.Render(w, http.StatusOK, "article", page)
 }
@@ -174,4 +176,23 @@ func ResolveLinks(html string, targets map[string]string) template.HTML {
 		}
 		return m[2]
 	}))
+}
+
+// an uploaded image in a rendered body, by its key in storage - see the platform's reference_image
+var storageImageRegex = regexp.MustCompile(`src="storage:([^"]*)"`)
+
+// ResolveImages resolves the storage: images in a rendered body against the given base URL of storage - where
+// uploaded images are served from as of now. The key is escaped as a path and any fragment rides along.
+func ResolveImages(body, storageURL string) string {
+	base := strings.TrimSuffix(storageURL, "/")
+	return storageImageRegex.ReplaceAllStringFunc(body, func(src string) string {
+		reference := html.UnescapeString(storageImageRegex.FindStringSubmatch(src)[1])
+		key, fragment, hasFragment := strings.Cut(reference, "#")
+
+		address := base + (&url.URL{Path: "/" + strings.TrimPrefix(key, "/")}).EscapedPath()
+		if hasFragment {
+			address += "#" + fragment
+		}
+		return `src="` + html.EscapeString(address) + `"`
+	})
 }

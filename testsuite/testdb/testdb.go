@@ -51,6 +51,9 @@ type SiteOptions struct {
 	Tagline  string
 	Footer   string
 	Config   map[string]string
+
+	// what the helpdesk's palette entries look like, as the platform keeps them alongside the palette
+	ColorStyles map[string]models.ColorStyle
 }
 
 // InsertSite inserts a help site for the workspace's helpdesk and returns it
@@ -82,6 +85,14 @@ func InsertSite(t *testing.T, rt *runtime.Runtime, orgID models.OrgID, title str
 		siteUUID, source, title, opts.Tagline, opts.Footer, domain, verifiedOn, opts.Enabled, configJSON, Admin,
 	)
 	require.NoError(t, err)
+
+	if opts.ColorStyles != nil {
+		stylesJSON, _ := json.Marshal(opts.ColorStyles)
+		_, err = rt.DB.ExecContext(context.Background(),
+			`UPDATE knowledge_knowledgesource SET config = config || JSONB_BUILD_OBJECT('color_styles', $2::jsonb) WHERE id = $1`, source, stylesJSON,
+		)
+		require.NoError(t, err)
+	}
 
 	site, err := models.LoadSiteByUUID(context.Background(), rt.DB, siteUUID)
 	require.NoError(t, err)
