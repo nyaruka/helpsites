@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/nyaruka/helpsites/core/models"
-	"github.com/nyaruka/helpsites/runtime"
+	"github.com/nyaruka/helpsites/v26/core/models"
+	"github.com/nyaruka/helpsites/v26/runtime"
 )
 
 // Hit is a chunk of indexed knowledge matching a semantic search, naming its source and item

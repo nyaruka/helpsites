@@ -6,8 +6,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/nyaruka/helpsites/runtime"
-	"github.com/nyaruka/helpsites/testsuite"
+	"github.com/nyaruka/helpsites/v26/runtime"
+	"github.com/nyaruka/helpsites/v26/testsuite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

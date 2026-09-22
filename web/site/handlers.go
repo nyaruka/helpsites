@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/nyaruka/helpsites/core/models"
-	"github.com/nyaruka/helpsites/core/search"
-	"github.com/nyaruka/helpsites/runtime"
-	"github.com/nyaruka/helpsites/web"
+	"github.com/nyaruka/helpsites/v26/core/models"
+	"github.com/nyaruka/helpsites/v26/core/search"
+	"github.com/nyaruka/helpsites/v26/runtime"
+	"github.com/nyaruka/helpsites/v26/web"
 )
 
 const (

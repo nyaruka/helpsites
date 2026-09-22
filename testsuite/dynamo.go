@@ -7,8 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/nyaruka/helpsites/core/certs"
-	"github.com/nyaruka/helpsites/runtime"
+	"github.com/nyaruka/helpsites/v26/core/certs"
+	"github.com/nyaruka/helpsites/v26/runtime"
 	"github.com/stretchr/testify/require"
 )
 

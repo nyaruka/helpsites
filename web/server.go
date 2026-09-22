@@ -14,9 +14,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/nyaruka/gocommon/jsonx"
-	"github.com/nyaruka/helpsites/core/certs"
-	"github.com/nyaruka/helpsites/core/models"
-	"github.com/nyaruka/helpsites/runtime"
+	"github.com/nyaruka/helpsites/v26/core/certs"
+	"github.com/nyaruka/helpsites/v26/core/models"
+	"github.com/nyaruka/helpsites/v26/runtime"
 )
 
 // the prefix of the internal listener's routes, as the internal load balancer routes them

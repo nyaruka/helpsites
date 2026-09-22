@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/nyaruka/helpsites/core/models"
-	"github.com/nyaruka/helpsites/runtime"
-	"github.com/nyaruka/helpsites/utils"
+	"github.com/nyaruka/helpsites/v26/core/models"
+	"github.com/nyaruka/helpsites/v26/runtime"
+	"github.com/nyaruka/helpsites/v26/utils"
 )
 
 func requestLogger(listener string) func(http.Handler) http.Handler {

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nyaruka/helpsites/core/certs"
-	"github.com/nyaruka/helpsites/testsuite"
+	"github.com/nyaruka/helpsites/v26/core/certs"
+	"github.com/nyaruka/helpsites/v26/testsuite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

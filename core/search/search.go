@@ -12,8 +12,8 @@ import (
 	"time"
 
 	valkey "github.com/gomodule/redigo/redis"
-	"github.com/nyaruka/helpsites/core/models"
-	"github.com/nyaruka/helpsites/runtime"
+	"github.com/nyaruka/helpsites/v26/core/models"
+	"github.com/nyaruka/helpsites/v26/runtime"
 )
 
 const (

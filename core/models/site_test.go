@@ -3,9 +3,9 @@ package models_test
 import (
 	"testing"
 
-	"github.com/nyaruka/helpsites/core/models"
-	"github.com/nyaruka/helpsites/testsuite"
-	"github.com/nyaruka/helpsites/testsuite/testdb"
+	"github.com/nyaruka/helpsites/v26/core/models"
+	"github.com/nyaruka/helpsites/v26/testsuite"
+	"github.com/nyaruka/helpsites/v26/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

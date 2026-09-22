@@ -4,7 +4,7 @@ import (
 	"html/template"
 	"testing"
 
-	"github.com/nyaruka/helpsites/core/search"
+	"github.com/nyaruka/helpsites/v26/core/search"
 	"github.com/stretchr/testify/assert"
 )
 

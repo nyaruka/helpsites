@@ -7,6 +7,6 @@ COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 
 COPY . .
-RUN go build -v -o /usr/local/bin/app github.com/nyaruka/helpsites/cmd/helpsites
+RUN go build -v -o /usr/local/bin/app github.com/nyaruka/helpsites/v26/cmd/helpsites
 
 CMD ["app"]
