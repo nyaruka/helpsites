@@ -1,4 +1,4 @@
-module github.com/nyaruka/helpsites
+module github.com/nyaruka/helpsites/v26
 
 go 1.27.1
 
@@ -7,7 +7,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.20.59
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.63.1
 	github.com/caddyserver/certmagic v0.25.3
-	github.com/getsentry/sentry-go v0.49.0
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/gomodule/redigo v1.9.3
@@ -16,8 +15,6 @@ require (
 	github.com/nyaruka/ezconf v0.8.0
 	github.com/nyaruka/gocommon v1.95.1
 	github.com/nyaruka/vkutil v0.24.0
-	github.com/samber/slog-multi v1.8.0
-	github.com/samber/slog-sentry/v2 v2.11.0
 	github.com/stretchr/testify v1.12.1
 	github.com/vinovest/sqlx v1.7.2
 	go.uber.org/zap v1.28.0
@@ -58,8 +55,6 @@ require (
 	github.com/naoina/toml v0.1.1 // indirect
 	github.com/nyaruka/null/v3 v3.1.0 // indirect
 	github.com/nyaruka/phonenumbers/v2 v2.0.11 // indirect
-	github.com/samber/lo v1.53.0 // indirect
-	github.com/samber/slog-common v0.22.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/zeebo/blake3 v0.2.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect

@@ -8,9 +8,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/nyaruka/helpsites/core/certs"
-	"github.com/nyaruka/helpsites/runtime"
-	"github.com/nyaruka/helpsites/web"
+	"github.com/nyaruka/helpsites/v26/core/certs"
+	"github.com/nyaruka/helpsites/v26/runtime"
+	"github.com/nyaruka/helpsites/v26/web"
 )
 
 // shutdownTimeout is how long we allow for a graceful shutdown before exiting hard. Past this budget something is

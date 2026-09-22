@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/caddyserver/certmagic"
-	"github.com/nyaruka/helpsites/core/models"
-	"github.com/nyaruka/helpsites/runtime"
+	"github.com/nyaruka/helpsites/v26/core/models"
+	"github.com/nyaruka/helpsites/v26/runtime"
 )
 
 // ErrNotAllowed is the error a handshake gets for a name that isn't a verified site's

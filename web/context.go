@@ -3,7 +3,7 @@ package web
 import (
 	"context"
 
-	"github.com/nyaruka/helpsites/core/models"
+	"github.com/nyaruka/helpsites/v26/core/models"
 )
 
 // the platform mounts a workspace's preview of its own site here, and proxies it to us

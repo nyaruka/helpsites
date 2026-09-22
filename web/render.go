@@ -10,9 +10,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nyaruka/helpsites/core/models"
-	"github.com/nyaruka/helpsites/core/search"
-	"github.com/nyaruka/helpsites/runtime"
+	"github.com/nyaruka/helpsites/v26/core/models"
+	"github.com/nyaruka/helpsites/v26/core/search"
+	"github.com/nyaruka/helpsites/v26/runtime"
 )
 
 //go:embed templates/*.html

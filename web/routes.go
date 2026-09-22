@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/nyaruka/helpsites/runtime"
+	"github.com/nyaruka/helpsites/v26/runtime"
 )
 
 // Handler is a handler of a site request - the site is in the request's context, see GetSiteContext
