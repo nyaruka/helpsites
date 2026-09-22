@@ -35,7 +35,10 @@ func TestTestConnections(t *testing.T) {
 	assert.Equal(t, []string{"db ok", "valkey ok"}, captureLogs(func() { testConnections(rt) }))
 
 	// with ACME we check the certificates table, and we check mailroom whenever it's configured
+	// our own table, so that emptying it can't pull items out from under the certs tests in parallel
+	rt.Config.DynamoTablePrefix = "TestCmd"
 	testsuite.EnsureDynamoTable(t, rt)
+
 	rt.Config.TLSMode = runtime.TLSModeACME
 	rt.Config.MailroomURL = mailroom.URL
 
