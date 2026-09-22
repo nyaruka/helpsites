@@ -1,3 +1,8 @@
+v26.3.4 (2026-09-22)
+-------------------------
+ * Resolve storage images and style palette columns when serving articles
+ * Require the storage URL to be configured rather than defaulting it
+
 v26.3.3 (2026-09-22)
 -------------------------
  * Rename the internal listener's preview token to an auth token
