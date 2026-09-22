@@ -59,8 +59,9 @@ func TestSearch(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{"results": []map[string]any{
-			{"item_key": flowsUUID, "text": "A flow is a conversation you design.", "score": 0.8},
-			{"item_key": flowsUUID, "text": "duplicate", "score": 0.7},
+			// a chunk starts with the article's title and is markdown - neither of which a snippet shows
+			{"item_key": flowsUUID, "item_name": "Flows", "text": "Flows\n\nA **flow** is a conversation you design.", "score": 0.8},
+			{"item_key": flowsUUID, "item_name": "Flows", "text": "duplicate", "score": 0.7},
 		}})
 	}))
 	defer mailroom.Close()

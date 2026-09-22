@@ -90,7 +90,7 @@ func Search(ctx context.Context, rt *runtime.Runtime, site *models.Site, query s
 		for _, h := range hits {
 			if snippets[h.ItemKey] == "" {
 				keys = append(keys, h.ItemKey)
-				snippets[h.ItemKey] = MakeSnippet(models.PlainText(h.Text), terms, SnippetLength)
+				snippets[h.ItemKey] = MakeSnippet(models.PlainMarkdown(chunkBody(h)), terms, SnippetLength)
 			}
 		}
 

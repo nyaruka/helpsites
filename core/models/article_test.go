@@ -148,6 +148,39 @@ func TestArticles(t *testing.T) {
 	matches, err = models.SearchArticles(ctx, rt.DB, source, "hidden", nil, 10) // in a draft section
 	require.NoError(t, err)
 	assert.Len(t, matches, 0)
+
+	// an article is searched in its own language, so a question's stopwords are ignored and its words stemmed
+	matches, err = models.SearchArticles(ctx, rt.DB, source, "What are the invoices?", nil, 10)
+	require.NoError(t, err)
+	require.Len(t, matches, 1)
+	assert.Equal(t, invoices, matches[0].ID)
+
+	matches, err = models.SearchArticles(ctx, rt.DB, source, "invoice", nil, 10)
+	require.NoError(t, err)
+	require.Len(t, matches, 1)
+	assert.Equal(t, invoices, matches[0].ID)
+
+	// and one in a language Postgres has no configuration for is matched word for word
+	amakuru := testdb.InsertArticle(t, rt, source, billing, "Amakuru", "amakuru", testdb.ArticleOptions{Body: "Amakuru yose ni meza.", Language: "kin"})
+
+	matches, err = models.SearchArticles(ctx, rt.DB, source, "meza", nil, 10)
+	require.NoError(t, err)
+	require.Len(t, matches, 1)
+	assert.Equal(t, amakuru, matches[0].ID)
+
+	matches, err = models.SearchArticles(ctx, rt.DB, source, "the meza", nil, 10)
+	require.NoError(t, err)
+	assert.Len(t, matches, 0)
+}
+
+func TestPlainMarkdown(t *testing.T) {
+	assert.Equal(t, "", models.PlainMarkdown(""))
+	assert.Equal(t,
+		"Refunds Refunds take 5 days, see the policy for details.",
+		models.PlainMarkdown("## Refunds\n\nRefunds take **5 days**, see [the policy](https://x) for details.\n\n![shot](https://x/s.png)"),
+	)
+	assert.Equal(t, "one two Run this: Done.", models.PlainMarkdown("- one\n- two\n\n> Run this:\n\n```sh\nnpm install\n```\n\nDone."))
+	assert.Equal(t, "Name Age Ann 30", models.PlainMarkdown("| Name | Age |\n|---|---|\n| Ann | 30 |"))
 }
 
 func TestPlainTextAndExcerpt(t *testing.T) {

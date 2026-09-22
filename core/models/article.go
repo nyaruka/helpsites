@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"html"
+	"maps"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 )
@@ -231,21 +233,69 @@ func LoadPopular(ctx context.Context, db DBorTx, sourceID SourceID, since time.T
 	return articles, nil
 }
 
-const sqlSearchArticles = `
+// the text search configuration Postgres has for each language an article can be in, by ISO-639-3 code - which knows
+// the language's stopwords and how to stem its words. An article in any other language is matched word for word.
+var languageConfigs = map[string]string{
+	"ara": "arabic",
+	"hye": "armenian",
+	"eus": "basque",
+	"cat": "catalan",
+	"dan": "danish",
+	"nld": "dutch",
+	"eng": "english",
+	"fin": "finnish",
+	"fra": "french",
+	"deu": "german",
+	"ell": "greek",
+	"hin": "hindi",
+	"hun": "hungarian",
+	"ind": "indonesian",
+	"gle": "irish",
+	"ita": "italian",
+	"lit": "lithuanian",
+	"nep": "nepali",
+	"nor": "norwegian",
+	"nob": "norwegian",
+	"nno": "norwegian",
+	"por": "portuguese",
+	"ron": "romanian",
+	"rus": "russian",
+	"srp": "serbian",
+	"spa": "spanish",
+	"swe": "swedish",
+	"tam": "tamil",
+	"tur": "turkish",
+	"yid": "yiddish",
+}
+
+// the text search configuration for the article a's language, as SQL - see languageConfigs
+var sqlLanguageConfig = func() string {
+	b := &strings.Builder{}
+	b.WriteString("(CASE a.language")
+	for _, code := range slices.Sorted(maps.Keys(languageConfigs)) {
+		fmt.Fprintf(b, " WHEN '%s' THEN '%s'", code, languageConfigs[code])
+	}
+	b.WriteString(" ELSE 'simple' END)::regconfig")
+	return b.String()
+}()
+
+var sqlSearchArticles = `
 SELECT ROW_TO_JSON(r) FROM (
     SELECT ` + sqlArticleColumns + `, ` + sqlArticleParent + `, TS_RANK(v.vector, q.query) AS rank
       FROM knowledge_article a
       JOIN knowledge_article p ON p.id = a.parent_id,
-   LATERAL (SELECT SETWEIGHT(TO_TSVECTOR('simple', a.title), 'A') || SETWEIGHT(TO_TSVECTOR('simple', a.body), 'B') AS vector) v,
-   LATERAL (SELECT WEBSEARCH_TO_TSQUERY('simple', $2) AS query) q
+   LATERAL (SELECT ` + sqlLanguageConfig + ` AS config) c,
+   LATERAL (SELECT SETWEIGHT(TO_TSVECTOR(c.config, a.title), 'A') || SETWEIGHT(TO_TSVECTOR(c.config, a.body), 'B') AS vector) v,
+   LATERAL (SELECT WEBSEARCH_TO_TSQUERY(c.config, $2) AS query) q
      WHERE ` + sqlReadable + ` AND NOT (a.id = ANY($3)) AND v.vector @@ q.query
   ORDER BY rank DESC, a.title
      LIMIT $4
 ) r;`
 
 // SearchArticles searches the readable articles' titles and bodies for the given query, best match first, leaving
-// out the given articles. The simple text search configuration is used rather than a language's, since a helpdesk
-// can hold articles in any language.
+// out the given articles. Each article is searched in its own language, so a question's stopwords are ignored and
+// its words stemmed - a helpdesk can hold articles in several, and one in a language Postgres has no configuration
+// for is matched word for word.
 func SearchArticles(ctx context.Context, db DBorTx, sourceID SourceID, query string, exclude []ArticleID, limit int) ([]*Article, error) {
 	articles, err := queryJSON(ctx, db, func() *Article { return &Article{} }, sqlSearchArticles, sourceID, query, pqIntArray(exclude), limit)
 	if err != nil {
@@ -282,6 +332,35 @@ func (a *Article) PlainText() string {
 func PlainText(html_ string) string {
 	text := tagRegex.ReplaceAllString(strings.ReplaceAll(html_, "><", "> <"), "")
 	return strings.TrimSpace(spaceRegex.ReplaceAllString(html.UnescapeString(text), " "))
+}
+
+// the markup dropped from authored markdown to read it as plain text, in order
+var plainMarkdownRules = []struct {
+	re   *regexp.Regexp
+	repl string
+}{
+	{regexp.MustCompile("(?s)```.*?```"), " "},                                            // fenced code
+	{regexp.MustCompile(`!\[[^\]]*\]\([^)]*\)`), " "},                                     // images
+	{regexp.MustCompile(`\[([^\]]*)\]\([^)]*\)`), "$1"},                                   // links keep their text
+	{regexp.MustCompile(`(?m)^\s{0,3}#{1,6}\s+`), ""},                                     // heading markers
+	{regexp.MustCompile(`(?m)^\s{0,3}>\s?`), ""},                                          // blockquote markers
+	{regexp.MustCompile(`(?m)^\s*([-*+]|\d+\.)\s+`), ""},                                  // list markers
+	{regexp.MustCompile(`(?m)^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$`), " "},    // table separators
+	{regexp.MustCompile(`(?i)\b(width|background|padding|border)\s*:\s*[^|;\n]*;?`), " "}, // column styles
+	{regexp.MustCompile(`(?i)<br\s*/?>`), " "},                                            // cell line breaks
+	{regexp.MustCompile("[*_`~]"), ""},                                                    // emphasis and code markers
+	{regexp.MustCompile(`\|`), " "},                                                       // table pipes
+	{regexp.MustCompile(`\s+`), " "},
+}
+
+// PlainMarkdown reads authored markdown as plain text - what a search snippet shows of an indexed chunk, which is the
+// article's source rather than its rendered HTML. The same rules as the platform applies to excerpts.
+func PlainMarkdown(md string) string {
+	text := md
+	for _, rule := range plainMarkdownRules {
+		text = rule.re.ReplaceAllString(text, rule.repl)
+	}
+	return strings.TrimSpace(text)
 }
 
 // Excerpt returns the article's opening, as plain text, for listing it by - a section describes itself, an article
