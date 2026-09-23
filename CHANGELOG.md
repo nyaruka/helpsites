@@ -1,3 +1,7 @@
+v26.3.6 (2026-09-23)
+-------------------------
+ * Restrict knowledge searches to the site's source
+
 v26.3.5 (2026-09-23)
 -------------------------
  * Leave creating the certificates table to the platform and fail startup if it's missing
