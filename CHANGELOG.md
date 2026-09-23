@@ -1,3 +1,7 @@
+v26.3.5 (2026-09-23)
+-------------------------
+ * Leave creating the certificates table to the platform and fail startup if it's missing
+
 v26.3.4 (2026-09-22)
 -------------------------
  * Resolve storage images and style palette columns when serving articles
