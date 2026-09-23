@@ -97,3 +97,12 @@ func TestManagerACME(t *testing.T) {
 	_, err = tc.GetCertificate(&tls.ClientHelloInfo{ServerName: "nobody.example.com"})
 	assert.ErrorIs(t, err, certs.ErrNotAllowed) // not a site's, so no certificate is obtained for it
 }
+
+func TestManagerNoTable(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	rt.Config.DynamoTablePrefix = "Missing"
+
+	_, err := certs.NewManager(rt)
+	assert.ErrorContains(t, err, "error checking certificates table MissingCerts")
+}

@@ -12,6 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/caddyserver/certmagic"
 	"github.com/nyaruka/helpsites/v26/core/models"
 	"github.com/nyaruka/helpsites/v26/runtime"
@@ -41,16 +43,11 @@ func NewManager(rt *runtime.Runtime) (*Manager, error) {
 
 	cfg := rt.Config
 
-	// certificates are kept in DynamoDB whatever signs them, so that a local run exercises the same storage as a
-	// deployed one. The table is created if it's missing - a surprise in a deployment, so it's logged as one.
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	// the table is provisioned outside of this service, so check it's there rather than fail on the first handshake
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	created, err := EnsureTable(ctx, rt.Dynamo, cfg.CertsTable())
-	if err != nil {
-		return nil, err
-	}
-	if created {
-		slog.Warn("created certificates table", "comp", "certs", "table", cfg.CertsTable())
+	if _, err := rt.Dynamo.DescribeTable(ctx, &dynamodb.DescribeTableInput{TableName: aws.String(cfg.CertsTable())}); err != nil {
+		return nil, fmt.Errorf("error checking certificates table %s: %w", cfg.CertsTable(), err)
 	}
 
 	logger := newZapLogger(slog.Default())
@@ -60,6 +57,7 @@ func NewManager(rt *runtime.Runtime) (*Manager, error) {
 		Logger:           logger,
 	})
 	m.config = certmagic.New(cache, certmagic.Config{
+		// kept in DynamoDB whatever signs them, so that a local run exercises the same storage as a deployed one
 		Storage:  NewDynamoStorage(rt.Dynamo, cfg.CertsTable()),
 		OnDemand: &certmagic.OnDemandConfig{DecisionFunc: m.decide},
 		Logger:   logger,
