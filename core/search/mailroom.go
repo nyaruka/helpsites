@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"unicode"
 
 	"github.com/nyaruka/helpsites/v26/core/models"
 	"github.com/nyaruka/helpsites/v26/runtime"
@@ -21,12 +22,18 @@ type Hit struct {
 }
 
 // chunkBody returns a hit's text without the article's title, which mailroom prefixes onto every chunk for the
-// embedding's sake - a result already shows the title, so a snippet shouldn't start by repeating it
+// embedding's sake - a result already shows the title, so a snippet shouldn't start by repeating it. The prefix is
+// the item's name and a blank line (see chunkArticle in mailroom's core/knowledge); any whitespace after the name is
+// accepted, while a name that merely starts a longer first word is left alone.
 func chunkBody(h *Hit) string {
-	if h.ItemName != "" {
-		return strings.TrimPrefix(h.Text, h.ItemName+"\n\n")
+	if h.ItemName == "" {
+		return h.Text
 	}
-	return h.Text
+	rest, found := strings.CutPrefix(h.Text, h.ItemName)
+	if !found || (rest != "" && !unicode.IsSpace(rune(rest[0]))) {
+		return h.Text
+	}
+	return strings.TrimLeft(rest, " \t\r\n")
 }
 
 // knowledgeSearch searches the given sources of the workspace's indexed knowledge semantically through mailroom,

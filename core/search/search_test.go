@@ -62,6 +62,8 @@ func TestSearch(t *testing.T) {
 			// a chunk starts with the article's title and is markdown - neither of which a snippet shows
 			{"item_key": flowsUUID, "item_name": "Flows", "text": "Flows\n\nA **flow** is a conversation you design.", "score": 0.8},
 			{"item_key": flowsUUID, "item_name": "Flows", "text": "duplicate", "score": 0.7},
+			// a chunk that's only the title line makes an empty snippet, which mustn't list the article again
+			{"item_key": flowsUUID, "item_name": "Flows", "text": "Flows", "score": 0.6},
 		}})
 	}))
 	defer mailroom.Close()
