@@ -11,12 +11,11 @@ import (
 	"github.com/nyaruka/helpsites/v26/runtime"
 )
 
-// Hit is a chunk of indexed knowledge matching a semantic search, naming its source and item
+// Hit is a chunk of indexed knowledge matching a semantic search, naming its item
 type Hit struct {
-	KnowledgeUUID string  `json:"knowledge_uuid"`
-	ItemKey       string  `json:"item_key"`
-	Text          string  `json:"text"`
-	Score         float64 `json:"score"`
+	ItemKey string  `json:"item_key"`
+	Text    string  `json:"text"`
+	Score   float64 `json:"score"`
 }
 
 // knowledgeSearch searches the given sources of the workspace's indexed knowledge semantically through mailroom,

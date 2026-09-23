@@ -88,8 +88,7 @@ func Search(ctx context.Context, rt *runtime.Runtime, site *models.Site, query s
 
 		keys := make([]string, 0, len(hits))
 		for _, h := range hits {
-			// a mailroom that doesn't know source_uuids searches all of the workspace's sources
-			if h.KnowledgeUUID == site.Source.UUID && snippets[h.ItemKey] == "" {
+			if snippets[h.ItemKey] == "" {
 				keys = append(keys, h.ItemKey)
 				snippets[h.ItemKey] = MakeSnippet(models.PlainText(h.Text), terms, SnippetLength)
 			}

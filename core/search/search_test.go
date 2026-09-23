@@ -59,9 +59,8 @@ func TestSearch(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{"results": []map[string]any{
-			{"knowledge_uuid": "other-source", "item_key": "x", "text": "not ours", "score": 0.9},
-			{"knowledge_uuid": site.Source.UUID, "item_key": flowsUUID, "text": "A flow is a conversation you design.", "score": 0.8},
-			{"knowledge_uuid": site.Source.UUID, "item_key": flowsUUID, "text": "duplicate", "score": 0.7},
+			{"item_key": flowsUUID, "text": "A flow is a conversation you design.", "score": 0.8},
+			{"item_key": flowsUUID, "text": "duplicate", "score": 0.7},
 		}})
 	}))
 	defer mailroom.Close()
