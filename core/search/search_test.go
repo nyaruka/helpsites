@@ -83,6 +83,7 @@ func TestSearch(t *testing.T) {
 	assert.Equal(t, "A flow is a <mark>conversation</mark> you <mark>design</mark>.", string(results[0].Snippet))
 	require.Len(t, requests, 1)
 	assert.Equal(t, float64(testdb.Org1), requests[0]["org_id"])
+	assert.Equal(t, []any{site.Source.UUID}, requests[0]["source_uuids"])
 	assert.Equal(t, float64(30), requests[0]["limit"])
 
 	// mailroom being down still gives text results
