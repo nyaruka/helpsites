@@ -80,14 +80,15 @@ func Search(ctx context.Context, rt *runtime.Runtime, site *models.Site, query s
 	snippets := make(map[string]template.HTML)
 
 	if rt.Config.MailroomURL != "" && site.Source.LastIndexedOn != nil {
-		// the workspace's sources are searched together, so ask for more than we need and keep what's ours
-		hits, err := knowledgeSearch(ctx, rt, site.Org.ID, query, limit*3)
+		// an article can match as several chunks, so ask for more than we need to still fill the limit with articles
+		hits, err := knowledgeSearch(ctx, rt, site.Org.ID, []string{site.Source.UUID}, query, limit*3)
 		if err != nil {
 			slog.Error("error searching knowledge", "comp", "search", "error", err)
 		}
 
 		keys := make([]string, 0, len(hits))
 		for _, h := range hits {
+			// a mailroom that doesn't know source_uuids searches all of the workspace's sources
 			if h.KnowledgeUUID == site.Source.UUID && snippets[h.ItemKey] == "" {
 				keys = append(keys, h.ItemKey)
 				snippets[h.ItemKey] = MakeSnippet(models.PlainText(h.Text), terms, SnippetLength)

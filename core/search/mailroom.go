@@ -19,10 +19,13 @@ type Hit struct {
 	Score         float64 `json:"score"`
 }
 
-// knowledgeSearch searches the workspace's indexed knowledge semantically through mailroom, returning the matching
-// chunks best first
-func knowledgeSearch(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, query string, limit int) ([]*Hit, error) {
-	payload, _ := json.Marshal(map[string]any{"org_id": orgID, "query": query, "limit": limit})
+// knowledgeSearch searches the given sources of the workspace's indexed knowledge semantically through mailroom,
+// returning the matching chunks best first
+func knowledgeSearch(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, sourceUUIDs []string, query string,
+	limit int) ([]*Hit, error) {
+	payload, _ := json.Marshal(map[string]any{
+		"org_id": orgID, "source_uuids": sourceUUIDs, "query": query, "limit": limit,
+	})
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, rt.Config.MailroomURL+"/mi/knowledge/search", bytes.NewReader(payload))
 	if err != nil {
