@@ -41,18 +41,6 @@ func NewManager(rt *runtime.Runtime) (*Manager, error) {
 
 	cfg := rt.Config
 
-	// certificates are kept in DynamoDB whatever signs them, so that a local run exercises the same storage as a
-	// deployed one. The table is created if it's missing - a surprise in a deployment, so it's logged as one.
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
-	defer cancel()
-	created, err := EnsureTable(ctx, rt.Dynamo, cfg.CertsTable())
-	if err != nil {
-		return nil, err
-	}
-	if created {
-		slog.Warn("created certificates table", "comp", "certs", "table", cfg.CertsTable())
-	}
-
 	logger := newZapLogger(slog.Default())
 
 	cache := certmagic.NewCache(certmagic.CacheOptions{
@@ -60,6 +48,7 @@ func NewManager(rt *runtime.Runtime) (*Manager, error) {
 		Logger:           logger,
 	})
 	m.config = certmagic.New(cache, certmagic.Config{
+		// kept in DynamoDB whatever signs them, so that a local run exercises the same storage as a deployed one
 		Storage:  NewDynamoStorage(rt.Dynamo, cfg.CertsTable()),
 		OnDemand: &certmagic.OnDemandConfig{DecisionFunc: m.decide},
 		Logger:   logger,
