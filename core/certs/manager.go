@@ -12,6 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/caddyserver/certmagic"
 	"github.com/nyaruka/helpsites/v26/core/models"
 	"github.com/nyaruka/helpsites/v26/runtime"
@@ -40,6 +42,13 @@ func NewManager(rt *runtime.Runtime) (*Manager, error) {
 	m.domains.Store(&map[string]bool{})
 
 	cfg := rt.Config
+
+	// the table is provisioned outside of this service, so check it's there rather than fail on the first handshake
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if _, err := rt.Dynamo.DescribeTable(ctx, &dynamodb.DescribeTableInput{TableName: aws.String(cfg.CertsTable())}); err != nil {
+		return nil, fmt.Errorf("error checking certificates table %s: %w", cfg.CertsTable(), err)
+	}
 
 	logger := newZapLogger(slog.Default())
 
