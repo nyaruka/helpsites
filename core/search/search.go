@@ -86,11 +86,15 @@ func Search(ctx context.Context, rt *runtime.Runtime, site *models.Site, query s
 			slog.Error("error searching knowledge", "comp", "search", "error", err)
 		}
 
+		// an article is listed once, for its best chunk - tracked by key rather than by whether it has a snippet yet,
+		// since a chunk that's only the title line makes an empty one
 		keys := make([]string, 0, len(hits))
+		seen := make(map[string]bool, len(hits))
 		for _, h := range hits {
-			if snippets[h.ItemKey] == "" {
+			if !seen[h.ItemKey] {
+				seen[h.ItemKey] = true
 				keys = append(keys, h.ItemKey)
-				snippets[h.ItemKey] = MakeSnippet(models.PlainText(h.Text), terms, SnippetLength)
+				snippets[h.ItemKey] = MakeSnippet(models.PlainMarkdown(chunkBody(h)), terms, SnippetLength)
 			}
 		}
 

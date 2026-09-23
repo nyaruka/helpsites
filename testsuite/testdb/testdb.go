@@ -111,8 +111,10 @@ func SetRedirects(t *testing.T, rt *runtime.Runtime, site *models.Site, redirect
 // ArticleOptions is what a test can vary about an article
 type ArticleOptions struct {
 	Description string
+	Body        string // the markdown source; derived from BodyHTML when not given
 	BodyHTML    string
 	Headings    []models.Heading
+	Language    string // ISO-639-3, English when not given
 	Draft       bool
 	Inactive    bool
 	SortOrder   int
@@ -148,12 +150,20 @@ func insertArticle(t *testing.T, rt *runtime.Runtime, source models.SourceID, pa
 		headings = []models.Heading{}
 	}
 	headingsJSON, _ := json.Marshal(headings)
+	body := opts.Body
+	if body == "" {
+		body = models.PlainText(opts.BodyHTML)
+	}
+	language := opts.Language
+	if language == "" {
+		language = "eng"
+	}
 
 	var id models.ArticleID
 	err := rt.DB.QueryRowContext(context.Background(),
 		`INSERT INTO knowledge_article(uuid, source_id, parent_id, sort_order, title, slug, body, body_html, headings, description, language, status, published_on, is_active, created_by_id, created_on, modified_by_id, modified_on)
-		 VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'eng', $11, $12, $13, $14, NOW(), $14, NOW()) RETURNING id`,
-		uuid.NewString(), source, parent, opts.SortOrder, title, slug, models.PlainText(opts.BodyHTML), opts.BodyHTML, headingsJSON, opts.Description, status, publishedOn, !opts.Inactive, Admin,
+		 VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), $15, NOW()) RETURNING id`,
+		uuid.NewString(), source, parent, opts.SortOrder, title, slug, body, opts.BodyHTML, headingsJSON, opts.Description, language, status, publishedOn, !opts.Inactive, Admin,
 	).Scan(&id)
 	require.NoError(t, err)
 	return id
