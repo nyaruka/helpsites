@@ -1,3 +1,7 @@
+v26.3.8 (2026-09-28)
+-------------------------
+ * Claim per-test valkey databases with assertvk.ClaimDB, coordinated with other projects' tests
+
 v26.3.7 (2026-09-28)
 -------------------------
  * Rely on mailroom to limit knowledge searches to the site's source
