@@ -38,15 +38,15 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	dbName := createTestDB(t)
 	t.Cleanup(func() { dropTestDB(t, dbName) })
 
-	// this binary's own valkey database, whose number also names its own DynamoDB table - see valkey.go
-	vkDSN, vkDB := testVKDB(t)
+	// this test's own valkey database, whose number also names its own DynamoDB table - see valkey.go
+	vk := assertvk.ClaimDB(t)
 
 	cfg := runtime.NewDefaultConfig()
 	cfg.DeploymentID = "test"
 	cfg.DB = fmt.Sprintf(dbTestDSNFormat, dbName)
-	cfg.Valkey = vkDSN
+	cfg.Valkey = vk.URL
 	cfg.TLSMode = runtime.TLSModeSelfSigned
-	cfg.DynamoTablePrefix = fmt.Sprintf("Test%d", vkDB)
+	cfg.DynamoTablePrefix = fmt.Sprintf("Test%d", vk.Num)
 	cfg.DynamoEndpoint = "http://dynamodb:8000"
 
 	// AWS SDK default chain reads these - used by the DynamoDB client
@@ -65,8 +65,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
-	// so every test starts with empty valkey and certificates table
-	assertvk.FlushDB()
+	// so every test starts with an empty certificates table
 	ensureDynamoTable(t, rt)
 
 	t.Cleanup(func() { rt.Stop() })
