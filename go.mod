@@ -13,8 +13,8 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.12.3
 	github.com/nyaruka/ezconf v0.8.0
-	github.com/nyaruka/gocommon v1.95.1
-	github.com/nyaruka/vkutil v0.24.0
+	github.com/nyaruka/gocommon v1.96.0
+	github.com/nyaruka/vkutil v0.25.0
 	github.com/stretchr/testify v1.12.1
 	github.com/vinovest/sqlx v1.7.2
 	go.uber.org/zap v1.28.0
