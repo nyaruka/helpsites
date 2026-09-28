@@ -90,9 +90,25 @@ func TestSearch(t *testing.T) {
 	assert.Equal(t, welcome, results[0].Article.ID)
 	assert.Len(t, requests, 2)
 
-	// mailroom being down gives no results
-	mailroom.Close()
+	// mailroom failing gives no results, which aren't cached
+	failing := true
+	flaky := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if failing {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		mailroom.Config.Handler.ServeHTTP(w, r)
+	}))
+	defer flaky.Close()
+	rt.Config.MailroomURL = flaky.URL
+
 	results, err = search.Search(ctx, rt, site, "welcome", 10)
 	require.NoError(t, err)
 	assert.Len(t, results, 0)
+
+	failing = false
+	results, err = search.Search(ctx, rt, site, "welcome", 10)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, welcome, results[0].Article.ID)
 }

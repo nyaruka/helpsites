@@ -81,7 +81,9 @@ func Search(ctx context.Context, rt *runtime.Runtime, site *models.Site, query s
 		// an article can match as several chunks, so ask for more than we need to still fill the limit with articles
 		hits, err := knowledgeSearch(ctx, rt, site.Org.ID, []string{site.Source.UUID}, query, limit*3)
 		if err != nil {
+			// no results, but don't cache them, so the search works again as soon as mailroom does
 			slog.Error("error searching knowledge", "comp", "search", "error", err)
+			return nil, nil
 		}
 
 		keys := make([]string, 0, len(hits))
