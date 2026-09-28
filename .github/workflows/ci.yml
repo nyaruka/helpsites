@@ -18,8 +18,8 @@ jobs:
       valkey:
         image: valkey/valkey:8.1-alpine
         env:
-          # tests claim their own databases from 96-111 so need more than the default 16
-          VALKEY_EXTRA_FLAGS: --databases 112
+          # tests claim their own databases from 64-79 so need more than the default 16
+          VALKEY_EXTRA_FLAGS: --databases 80
         ports:
           - 6379:6379
       postgres:

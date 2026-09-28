@@ -20,7 +20,7 @@ import (
 
 const (
 	slotCount    = 16
-	slotVKDBBase = 96 // valkey databases 96-111
+	slotVKDBBase = 64 // valkey databases 64-79
 
 	// DSN format for a slot's valkey database
 	vkTestDSNFormat = "valkey://valkey:6379/%d"
