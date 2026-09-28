@@ -3,6 +3,7 @@ package web_test
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"io"
 	"net"
 	"net/http"
@@ -79,7 +80,7 @@ func get(t *testing.T, h http.Handler, host, path string, sni string) (*http.Res
 
 func TestSitePages(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
-	_, ids := setupSite(t, rt)
+	site, ids := setupSite(t, rt)
 	h := newServer(t, rt).SiteHandler()
 
 	// home
@@ -153,7 +154,24 @@ func TestSitePages(t *testing.T) {
 	resp, _ = get(t, h, "help.nyaruka.com", "/billing/welcome/", "help.nyaruka.com") // wrong section
 	assert.Equal(t, 404, resp.StatusCode)
 
-	// search
+	// search, through mailroom once the helpdesk is indexed
+	invoicesUUID := testdb.ArticleUUID(t, rt, ids["invoices"])
+	mailroom := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req map[string]any
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
+		var hits []map[string]any
+		if req["query"] == "invoices" {
+			hits = append(hits, map[string]any{"item_key": invoicesUUID, "text": "About invoices.", "score": 0.9})
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{"results": hits})
+	}))
+	defer mailroom.Close()
+
+	rt.Config.MailroomURL = mailroom.URL
+	_, err := rt.DB.ExecContext(t.Context(), `UPDATE knowledge_knowledgesource SET last_indexed_on = NOW() WHERE id = $1`, site.Source.ID)
+	require.NoError(t, err)
+
 	resp, body = get(t, h, "help.nyaruka.com", "/search/?q=invoices", "help.nyaruka.com")
 	assert.Equal(t, 200, resp.StatusCode)
 	assert.Contains(t, body, "1 result for “invoices”")
@@ -205,7 +223,7 @@ func TestSitePages(t *testing.T) {
 	assert.Equal(t, 404, resp.StatusCode)
 	assert.Contains(t, body, "This help site isn&#39;t available")
 
-	_, err := rt.DB.ExecContext(t.Context(), `UPDATE knowledge_helpsite SET is_enabled = FALSE`)
+	_, err = rt.DB.ExecContext(t.Context(), `UPDATE knowledge_helpsite SET is_enabled = FALSE`)
 	require.NoError(t, err)
 	resp, body = get(t, h, "help.nyaruka.com", "/", "help.nyaruka.com")
 	assert.Equal(t, 404, resp.StatusCode)

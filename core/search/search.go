@@ -37,11 +37,9 @@ type cachedResult struct {
 
 var termRegex = regexp.MustCompile(`\W+`)
 
-// Search searches the site's articles, returning the best first. Semantic search through mailroom leads when the
-// helpdesk has been indexed, and text search over titles and bodies fills in behind it - so a search works before the
-// first index, and still finds an exact phrase the embeddings rank low. The site is public, and a search costs an
-// embedding and a scan of every body - so the same question asked again within a few minutes is answered from the
-// last time, less anything unpublished since.
+// Search searches the site's articles through mailroom's semantic search of the indexed helpdesk, returning the best
+// first. The site is public, and a search costs an embedding - so the same question asked again within a few minutes
+// is answered from the last time, less anything unpublished since.
 func Search(ctx context.Context, rt *runtime.Runtime, site *models.Site, query string, limit int) ([]*Result, error) {
 	query = strings.TrimSpace(query)
 	if query == "" {
@@ -83,7 +81,9 @@ func Search(ctx context.Context, rt *runtime.Runtime, site *models.Site, query s
 		// an article can match as several chunks, so ask for more than we need to still fill the limit with articles
 		hits, err := knowledgeSearch(ctx, rt, site.Org.ID, []string{site.Source.UUID}, query, limit*3)
 		if err != nil {
+			// no results, but don't cache them, so the search works again as soon as mailroom does
 			slog.Error("error searching knowledge", "comp", "search", "error", err)
+			return nil, nil
 		}
 
 		keys := make([]string, 0, len(hits))
@@ -105,18 +105,6 @@ func Search(ctx context.Context, rt *runtime.Runtime, site *models.Site, query s
 				}
 			}
 		}
-	}
-
-	if len(ordered) < limit {
-		exclude := make([]models.ArticleID, len(ordered))
-		for i, a := range ordered {
-			exclude[i] = a.ID
-		}
-		matches, err := models.SearchArticles(ctx, rt.DB, site.Source.ID, query, exclude, limit-len(ordered))
-		if err != nil {
-			return nil, err
-		}
-		ordered = append(ordered, matches...)
 	}
 
 	if len(ordered) > limit {

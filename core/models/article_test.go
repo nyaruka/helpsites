@@ -129,25 +129,6 @@ func TestArticles(t *testing.T) {
 	popular, err = models.LoadPopular(ctx, rt.DB, source, today.AddDate(0, 0, -30), 1)
 	require.NoError(t, err)
 	require.Len(t, popular, 1)
-
-	// text search
-	matches, err := models.SearchArticles(ctx, rt.DB, source, "welcome", nil, 10)
-	require.NoError(t, err)
-	require.Len(t, matches, 1)
-	assert.Equal(t, welcome, matches[0].ID)
-
-	matches, err = models.SearchArticles(ctx, rt.DB, source, "welcome", []models.ArticleID{welcome}, 10)
-	require.NoError(t, err)
-	assert.Len(t, matches, 0)
-
-	matches, err = models.SearchArticles(ctx, rt.DB, source, "invoices", nil, 10)
-	require.NoError(t, err)
-	require.Len(t, matches, 1)
-	assert.Equal(t, invoices, matches[0].ID)
-
-	matches, err = models.SearchArticles(ctx, rt.DB, source, "hidden", nil, 10) // in a draft section
-	require.NoError(t, err)
-	assert.Len(t, matches, 0)
 }
 
 func TestPlainTextAndExcerpt(t *testing.T) {

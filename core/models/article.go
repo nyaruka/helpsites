@@ -231,29 +231,6 @@ func LoadPopular(ctx context.Context, db DBorTx, sourceID SourceID, since time.T
 	return articles, nil
 }
 
-const sqlSearchArticles = `
-SELECT ROW_TO_JSON(r) FROM (
-    SELECT ` + sqlArticleColumns + `, ` + sqlArticleParent + `, TS_RANK(v.vector, q.query) AS rank
-      FROM knowledge_article a
-      JOIN knowledge_article p ON p.id = a.parent_id,
-   LATERAL (SELECT SETWEIGHT(TO_TSVECTOR('simple', a.title), 'A') || SETWEIGHT(TO_TSVECTOR('simple', a.body), 'B') AS vector) v,
-   LATERAL (SELECT WEBSEARCH_TO_TSQUERY('simple', $2) AS query) q
-     WHERE ` + sqlReadable + ` AND NOT (a.id = ANY($3)) AND v.vector @@ q.query
-  ORDER BY rank DESC, a.title
-     LIMIT $4
-) r;`
-
-// SearchArticles searches the readable articles' titles and bodies for the given query, best match first, leaving
-// out the given articles. The simple text search configuration is used rather than a language's, since a helpdesk
-// can hold articles in any language.
-func SearchArticles(ctx context.Context, db DBorTx, sourceID SourceID, query string, exclude []ArticleID, limit int) ([]*Article, error) {
-	articles, err := queryJSON(ctx, db, func() *Article { return &Article{} }, sqlSearchArticles, sourceID, query, pqIntArray(exclude), limit)
-	if err != nil {
-		return nil, fmt.Errorf("error searching articles: %w", err)
-	}
-	return articles, nil
-}
-
 // the scope of the daily count of an article's views
 const ArticleCountScopeViews = "views"
 
