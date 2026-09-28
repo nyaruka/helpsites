@@ -30,25 +30,14 @@ func TestSearch(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, results)
 
-	// without an index, text search alone
+	// without an index, nothing
 	results, err = search.Search(ctx, rt, site, "flows", 10)
 	require.NoError(t, err)
-	require.Len(t, results, 2)
-	assert.Equal(t, flows, results[0].Article.ID) // title match ranks first
-	assert.Equal(t, welcome, results[1].Article.ID)
-	assert.Contains(t, string(results[1].Snippet), "<mark>flows</mark>")
+	assert.Len(t, results, 0)
 
-	// the same search again is answered from the cache, less anything unpublished since
-	_, err = rt.DB.ExecContext(ctx, `UPDATE knowledge_article SET status = 'D' WHERE id = $1`, welcome)
-	require.NoError(t, err)
-
-	results, err = search.Search(ctx, rt, site, "Flows", 10)
-	require.NoError(t, err)
-	require.Len(t, results, 1)
-	assert.Equal(t, flows, results[0].Article.ID)
-
-	// with an index and mailroom, semantic results lead and text search fills in behind them
+	// with an index and mailroom, semantic results
 	flowsUUID := testdb.ArticleUUID(t, rt, flows)
+	welcomeUUID := testdb.ArticleUUID(t, rt, welcome)
 	var requests []map[string]any
 	mailroom := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/mi/knowledge/search", r.URL.Path)
@@ -61,6 +50,7 @@ func TestSearch(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]any{"results": []map[string]any{
 			{"item_key": flowsUUID, "text": "A flow is a conversation you design.", "score": 0.8},
 			{"item_key": flowsUUID, "text": "duplicate", "score": 0.7},
+			{"item_key": welcomeUUID, "text": "Welcome to the platform, where flows are built.", "score": 0.6},
 		}})
 	}))
 	defer mailroom.Close()
@@ -69,26 +59,40 @@ func TestSearch(t *testing.T) {
 	rt.Config.MailroomAuthToken = "mrtoken"
 	_, err = rt.DB.ExecContext(ctx, `UPDATE knowledge_knowledgesource SET last_indexed_on = NOW() WHERE id = $1`, source)
 	require.NoError(t, err)
-	_, err = rt.DB.ExecContext(ctx, `UPDATE knowledge_article SET status = 'P' WHERE id = $1`, welcome)
-	require.NoError(t, err)
 
 	site, err = models.LoadSiteByUUID(ctx, rt.DB, site.UUID)
 	require.NoError(t, err)
 
 	results, err = search.Search(ctx, rt, site, "how do I design a conversation", 10)
 	require.NoError(t, err)
-	require.Len(t, results, 1)
+	require.Len(t, results, 2)
 	assert.Equal(t, flows, results[0].Article.ID)
 	assert.Equal(t, "A flow is a <mark>conversation</mark> you <mark>design</mark>.", string(results[0].Snippet))
+	assert.Equal(t, welcome, results[1].Article.ID)
 	require.Len(t, requests, 1)
 	assert.Equal(t, float64(testdb.Org1), requests[0]["org_id"])
 	assert.Equal(t, []any{site.Source.UUID}, requests[0]["source_uuids"])
 	assert.Equal(t, float64(30), requests[0]["limit"])
 
-	// mailroom being down still gives text results
-	mailroom.Close()
-	results, err = search.Search(ctx, rt, site, "welcome", 10)
+	// the limit applies to articles rather than hits
+	results, err = search.Search(ctx, rt, site, "flows", 1)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, flows, results[0].Article.ID)
+
+	// the same search again is answered from the cache, less anything unpublished since
+	_, err = rt.DB.ExecContext(ctx, `UPDATE knowledge_article SET status = 'D' WHERE id = $1`, flows)
+	require.NoError(t, err)
+
+	results, err = search.Search(ctx, rt, site, "How do I design a conversation", 10)
 	require.NoError(t, err)
 	require.Len(t, results, 1)
 	assert.Equal(t, welcome, results[0].Article.ID)
+	assert.Len(t, requests, 2)
+
+	// mailroom being down gives no results
+	mailroom.Close()
+	results, err = search.Search(ctx, rt, site, "welcome", 10)
+	require.NoError(t, err)
+	assert.Len(t, results, 0)
 }
