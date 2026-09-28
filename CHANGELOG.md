@@ -1,3 +1,9 @@
+v26.3.7 (2026-09-28)
+-------------------------
+ * Rely on mailroom to limit knowledge searches to the site's source
+ * Remove text search fallback from help site search
+ * Don't cache search results when mailroom errors
+
 v26.3.6 (2026-09-23)
 -------------------------
  * Restrict knowledge searches to the site's source
