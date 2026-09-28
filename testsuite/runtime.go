@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/nyaruka/helpsites/v26/runtime"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,15 +38,15 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	dbName := createTestDB(t)
 	t.Cleanup(func() { dropTestDB(t, dbName) })
 
-	// this binary's slot gives it its own valkey database and DynamoDB table - see slot.go
-	slot := claimSlot(t)
+	// this test's own valkey database, whose number also names its own DynamoDB table - see valkey.go
+	vk := assertvk.ClaimDB(t)
 
 	cfg := runtime.NewDefaultConfig()
 	cfg.DeploymentID = "test"
 	cfg.DB = fmt.Sprintf(dbTestDSNFormat, dbName)
-	cfg.Valkey = fmt.Sprintf(vkTestDSNFormat, slotVKDB(slot))
+	cfg.Valkey = vk.URL
 	cfg.TLSMode = runtime.TLSModeSelfSigned
-	cfg.DynamoTablePrefix = fmt.Sprintf("Test%d", slot)
+	cfg.DynamoTablePrefix = fmt.Sprintf("Test%d", vk.Num)
 	cfg.DynamoEndpoint = "http://dynamodb:8000"
 
 	// AWS SDK default chain reads these - used by the DynamoDB client
@@ -64,8 +65,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
-	// so every test starts with empty valkey and certificates table
-	require.NoError(t, flushVKDB(slotVKDB(slot)))
+	// so every test starts with an empty certificates table
 	ensureDynamoTable(t, rt)
 
 	t.Cleanup(func() { rt.Stop() })
