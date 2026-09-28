@@ -12,7 +12,7 @@ import (
 )
 
 // Each test binary claims a slot - a small dense number which multiplexes the resources that are bounded rather than
-// namespaceable: its valkey database (16 + slot, in the 16-31 band reserved for tests) and its certificates table
+// namespaceable: its valkey database (in the band reserved for helpsites tests) and its certificates table
 // (prefixed Test<slot>) in the shared DynamoDB emulator. The claim is an advisory lock in Postgres held for the
 // binary's lifetime, so it evaporates when the run that owns it dies - and the slot's valkey database is flushed on
 // claim, clearing anything a dead run left behind. If every slot is taken - concurrently running binaries can
@@ -20,7 +20,7 @@ import (
 
 const (
 	slotCount    = 16
-	slotVKDBBase = 16 // valkey databases 16-31
+	slotVKDBBase = 96 // valkey databases 96-111
 
 	// DSN format for a slot's valkey database
 	vkTestDSNFormat = "valkey://valkey:6379/%d"
@@ -39,7 +39,7 @@ var binSlot = sync.OnceValues(func() (int, error) {
 	for {
 		for s := range slotCount {
 			var got bool
-			if err := owner.QueryRowContext(ctx, `SELECT pg_try_advisory_lock($1)`, dbKey(fmt.Sprintf("slot_%d", s))).Scan(&got); err != nil {
+			if err := owner.QueryRowContext(ctx, `SELECT pg_try_advisory_lock($1)`, dbKey(fmt.Sprintf("helpsites_slot_%d", s))).Scan(&got); err != nil {
 				return 0, fmt.Errorf("error trying claim on slot: %w", err)
 			}
 			if got {
