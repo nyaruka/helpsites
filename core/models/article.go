@@ -261,6 +261,16 @@ func PlainText(html_ string) string {
 	return strings.TrimSpace(spaceRegex.ReplaceAllString(html.UnescapeString(text), " "))
 }
 
+// a table row of column stylesheets, e.g. | width: 50%; background: 1 | |, which a layout table's header holds in
+// place of header text. Only a row whose every cell is empty or a stylesheet counts, so prose that merely mentions a
+// width or a border is left alone.
+var columnStylesRegex = regexp.MustCompile(
+	`(?im)^[ \t]*\|?` + columnStylesCell + `(\|` + columnStylesCell + `)+\|?[ \t]*$`,
+)
+
+const columnStylesCell = `[ \t]*(` + columnStyle + `[ \t]*(;[ \t]*` + columnStyle + `[ \t]*)*;?[ \t]*)?`
+const columnStyle = `(width|background|padding|border)[ \t]*:[ \t]*[^\s|;]+`
+
 // what to strip from markdown to read it as plain text - for search snippets of indexed chunks, which are the authored
 // markdown rather than rendered HTML. Order matters: images before links, since an image is a link with a bang in front.
 var markdownPlainTextRules = []struct {
@@ -274,7 +284,7 @@ var markdownPlainTextRules = []struct {
 	{regexp.MustCompile(`(?m)^[ \t]{0,3}>[ \t]?`), ""},                                                   // blockquote markers
 	{regexp.MustCompile(`(?m)^[ \t]*([-*+]|\d+\.)[ \t]+`), ""},                                           // list markers
 	{regexp.MustCompile(`(?m)^[ \t]*\|?[ \t]*:?-{3,}:?[ \t]*(\|[ \t]*:?-{3,}:?[ \t]*)*\|?[ \t]*$`), " "}, // table separators and rules
-	{regexp.MustCompile(`(?i)\b(width|background|padding|border)\s*:\s*[^|;\n]*;?`), " "},                // column styles
+	{columnStylesRegex, " "},                                                                             // column styles
 	{regexp.MustCompile(`(?i)<br\s*/?>`), " "},                                                           // cell line breaks
 	{regexp.MustCompile("[*_`~]"), ""},                                                                   // emphasis and code markers
 	{regexp.MustCompile(`\|`), " "},                                                                      // table pipes

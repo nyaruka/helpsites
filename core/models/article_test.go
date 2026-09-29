@@ -141,6 +141,11 @@ func TestMarkdownPlainText(t *testing.T) {
 				"| `value` | Text<br>|\n\n---\n\na &amp; b",
 		),
 	)
+
+	// prose, and cells with real text in them, aren't column styles however they read
+	assert.Equal(t, "The border: a thin frame around the box.", models.MarkdownPlainText("The border: a thin frame around the box."))
+	assert.Equal(t, "border: the frame Text", models.MarkdownPlainText("| border: the frame | Text |"))
+	assert.Equal(t, "A B", models.MarkdownPlainText("| width: 30%; background: 2 | padding: 8px; border: solid |\n| --- | --- |\n| A | B |"))
 }
 
 func TestPlainTextAndExcerpt(t *testing.T) {
