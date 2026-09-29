@@ -49,6 +49,7 @@ type Page struct {
 	SettingsURL string
 	AppHost     string
 	Lang        string
+	Favicon     string
 
 	Query    string
 	Sections []*models.Article
@@ -68,6 +69,7 @@ func NewPage(rt *runtime.Runtime, sc *SiteContext) *Page {
 		p.Site = sc.Site
 		p.Prefix = sc.Prefix
 		p.IsPreview = sc.IsPreview
+		p.Favicon = sc.Site.FaviconURL(rt.Config.StorageURL)
 		if sc.IsPreview {
 			p.SettingsURL = settingsPath
 		}
