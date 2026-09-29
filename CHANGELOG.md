@@ -1,3 +1,9 @@
+## v26.3.9 (2026-09-29)
+ * List an article once however its chunks clean up, and keep underscores inside words
+ * Only strip column styles from a table row made entirely of them
+ * Strip markdown and the title prefix from search result snippets
+ * Switch CHANGELOG headers to ATX style
+
 ## v26.3.8 (2026-09-28)
  * Claim per-test valkey databases with assertvk.ClaimDB, coordinated with other projects' tests
 
