@@ -131,6 +131,18 @@ func TestArticles(t *testing.T) {
 	require.Len(t, popular, 1)
 }
 
+func TestMarkdownPlainText(t *testing.T) {
+	assert.Equal(t, "", models.MarkdownPlainText(""))
+	assert.Equal(t,
+		"Heading A node is a step. See the guide and more. one two three Quote value Text a & b",
+		models.MarkdownPlainText(
+			"# Heading\n\nA **node** is a _step_. See [the guide](https://x.com) and ![shot](https://x.com/s.png) "+
+				"more.\n\n- one\n* two\n1. three\n\n> Quote\n\n```\ncode\n```\n\n| width: 50% | |\n| --- | --- |\n"+
+				"| `value` | Text<br>|\n\n---\n\na &amp; b",
+		),
+	)
+}
+
 func TestPlainTextAndExcerpt(t *testing.T) {
 	assert.Equal(t, "", models.PlainText(""))
 	assert.Equal(t, "Hello world", models.PlainText("<p>Hello</p><p>world</p>"))

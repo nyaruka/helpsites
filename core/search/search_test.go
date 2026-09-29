@@ -48,9 +48,9 @@ func TestSearch(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{"results": []map[string]any{
-			{"item_key": flowsUUID, "text": "A flow is a conversation you design.", "score": 0.8},
-			{"item_key": flowsUUID, "text": "duplicate", "score": 0.7},
-			{"item_key": welcomeUUID, "text": "Welcome to the platform, where flows are built.", "score": 0.6},
+			{"item_key": flowsUUID, "text": "Flows\n\nA **flow** is a [conversation](/flows/design/) you _design_.", "score": 0.8},
+			{"item_key": flowsUUID, "text": "Flows\n\nduplicate", "score": 0.7},
+			{"item_key": welcomeUUID, "text": "Welcome\n\nGetting Started\n\n- Welcome to the platform, where flows are built.", "score": 0.6},
 		}})
 	}))
 	defer mailroom.Close()
@@ -69,6 +69,7 @@ func TestSearch(t *testing.T) {
 	assert.Equal(t, flows, results[0].Article.ID)
 	assert.Equal(t, "A flow is a <mark>conversation</mark> you <mark>design</mark>.", string(results[0].Snippet))
 	assert.Equal(t, welcome, results[1].Article.ID)
+	assert.Equal(t, "Getting Started Welcome to the platform, where flows are built.", string(results[1].Snippet))
 	require.Len(t, requests, 1)
 	assert.Equal(t, float64(testdb.Org1), requests[0]["org_id"])
 	assert.Equal(t, []any{site.Source.UUID}, requests[0]["source_uuids"])
