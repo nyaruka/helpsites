@@ -142,6 +142,8 @@ func TestMarkdownPlainText(t *testing.T) {
 		),
 	)
 
+	assert.Equal(t, "Set some_field to on, or leave it off", models.MarkdownPlainText("Set `some_field` to _on_, or __leave it off__"))
+
 	// prose, and cells with real text in them, aren't column styles however they read
 	assert.Equal(t, "The border: a thin frame around the box.", models.MarkdownPlainText("The border: a thin frame around the box."))
 	assert.Equal(t, "border: the frame Text", models.MarkdownPlainText("| border: the frame | Text |"))

@@ -286,7 +286,9 @@ var markdownPlainTextRules = []struct {
 	{regexp.MustCompile(`(?m)^[ \t]*\|?[ \t]*:?-{3,}:?[ \t]*(\|[ \t]*:?-{3,}:?[ \t]*)*\|?[ \t]*$`), " "}, // table separators and rules
 	{columnStylesRegex, " "},                                                                             // column styles
 	{regexp.MustCompile(`(?i)<br\s*/?>`), " "},                                                           // cell line breaks
-	{regexp.MustCompile("[*_`~]"), ""},                                                                   // emphasis and code markers
+	{regexp.MustCompile("[*`~]"), ""},                                                                    // emphasis and code markers
+	{regexp.MustCompile(`(?m)(^|[^\p{L}\p{N}_])_+`), "$1"},                                               // underscore emphasis, which opens a word...
+	{regexp.MustCompile(`(?m)_+([^\p{L}\p{N}_]|$)`), "$1"},                                               // ...and closes one, so snake_case keeps its underscores
 	{regexp.MustCompile(`\|`), " "},                                                                      // table pipes
 }
 

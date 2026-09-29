@@ -48,6 +48,7 @@ func TestSearch(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{"results": []map[string]any{
+			{"item_key": flowsUUID, "text": "Flows\n\n![diagram](/flows.png)", "score": 0.9}, // nothing left to show once cleaned
 			{"item_key": flowsUUID, "text": "Flows\n\nA **flow** is a [conversation](/flows/design/) you _design_.", "score": 0.8},
 			{"item_key": flowsUUID, "text": "Flows\n\nduplicate", "score": 0.7},
 			{"item_key": welcomeUUID, "text": "Welcome\n\nGetting Started\n\n- Welcome to the platform, where flows are built.", "score": 0.6},
