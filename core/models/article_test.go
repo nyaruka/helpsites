@@ -131,6 +131,25 @@ func TestArticles(t *testing.T) {
 	require.Len(t, popular, 1)
 }
 
+func TestMarkdownPlainText(t *testing.T) {
+	assert.Equal(t, "", models.MarkdownPlainText(""))
+	assert.Equal(t,
+		"Heading A node is a step. See the guide and more. one two three Quote value Text a & b",
+		models.MarkdownPlainText(
+			"# Heading\n\nA **node** is a _step_. See [the guide](https://x.com) and ![shot](https://x.com/s.png) "+
+				"more.\n\n- one\n* two\n1. three\n\n> Quote\n\n```\ncode\n```\n\n| width: 50% | |\n| --- | --- |\n"+
+				"| `value` | Text<br>|\n\n---\n\na &amp; b",
+		),
+	)
+
+	assert.Equal(t, "Set some_field to on, or leave it off", models.MarkdownPlainText("Set `some_field` to _on_, or __leave it off__"))
+
+	// prose, and cells with real text in them, aren't column styles however they read
+	assert.Equal(t, "The border: a thin frame around the box.", models.MarkdownPlainText("The border: a thin frame around the box."))
+	assert.Equal(t, "border: the frame Text", models.MarkdownPlainText("| border: the frame | Text |"))
+	assert.Equal(t, "A B", models.MarkdownPlainText("| width: 30%; background: 2 | padding: 8px; border: solid |\n| --- | --- |\n| A | B |"))
+}
+
 func TestPlainTextAndExcerpt(t *testing.T) {
 	assert.Equal(t, "", models.PlainText(""))
 	assert.Equal(t, "Hello world", models.PlainText("<p>Hello</p><p>world</p>"))

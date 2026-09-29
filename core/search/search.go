@@ -88,9 +88,9 @@ func Search(ctx context.Context, rt *runtime.Runtime, site *models.Site, query s
 
 		keys := make([]string, 0, len(hits))
 		for _, h := range hits {
-			if snippets[h.ItemKey] == "" {
+			if _, seen := snippets[h.ItemKey]; !seen {
 				keys = append(keys, h.ItemKey)
-				snippets[h.ItemKey] = MakeSnippet(models.PlainText(h.Text), terms, SnippetLength)
+				snippets[h.ItemKey] = MakeSnippet(models.MarkdownPlainText(chunkBody(h.Text)), terms, SnippetLength)
 			}
 		}
 
@@ -154,4 +154,13 @@ func writeCache(rt *runtime.Runtime, key string, results []*cachedResult) {
 	if _, err := vc.Do("SET", key, data, "EX", int(cacheTTL.Seconds())); err != nil {
 		slog.Error("error writing search cache", "comp", "search", "error", err)
 	}
+}
+
+// chunkBody returns the text of an article's chunk less the title mailroom prefixes it with - by contract the title
+// followed by a blank line - since a result already shows the title
+func chunkBody(chunk string) string {
+	if _, body, found := strings.Cut(chunk, "\n\n"); found {
+		return body
+	}
+	return chunk
 }

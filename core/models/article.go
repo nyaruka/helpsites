@@ -261,6 +261,46 @@ func PlainText(html_ string) string {
 	return strings.TrimSpace(spaceRegex.ReplaceAllString(html.UnescapeString(text), " "))
 }
 
+// a table row of column stylesheets, e.g. | width: 50%; background: 1 | |, which a layout table's header holds in
+// place of header text. Only a row whose every cell is empty or a stylesheet counts, so prose that merely mentions a
+// width or a border is left alone.
+var columnStylesRegex = regexp.MustCompile(
+	`(?im)^[ \t]*\|?` + columnStylesCell + `(\|` + columnStylesCell + `)+\|?[ \t]*$`,
+)
+
+const columnStylesCell = `[ \t]*(` + columnStyle + `[ \t]*(;[ \t]*` + columnStyle + `[ \t]*)*;?[ \t]*)?`
+const columnStyle = `(width|background|padding|border)[ \t]*:[ \t]*[^\s|;]+`
+
+// what to strip from markdown to read it as plain text - for search snippets of indexed chunks, which are the authored
+// markdown rather than rendered HTML. Order matters: images before links, since an image is a link with a bang in front.
+var markdownPlainTextRules = []struct {
+	pattern     *regexp.Regexp
+	replacement string
+}{
+	{regexp.MustCompile("(?s)```.*?```"), " "},                                                           // fenced code
+	{regexp.MustCompile(`!\[[^\]]*\]\([^)]*\)`), " "},                                                    // images
+	{regexp.MustCompile(`\[([^\]]*)\]\([^)]*\)`), "$1"},                                                  // links keep their text
+	{regexp.MustCompile(`(?m)^[ \t]{0,3}#{1,6}[ \t]+`), ""},                                              // heading markers
+	{regexp.MustCompile(`(?m)^[ \t]{0,3}>[ \t]?`), ""},                                                   // blockquote markers
+	{regexp.MustCompile(`(?m)^[ \t]*([-*+]|\d+\.)[ \t]+`), ""},                                           // list markers
+	{regexp.MustCompile(`(?m)^[ \t]*\|?[ \t]*:?-{3,}:?[ \t]*(\|[ \t]*:?-{3,}:?[ \t]*)*\|?[ \t]*$`), " "}, // table separators and rules
+	{columnStylesRegex, " "},                                                                             // column styles
+	{regexp.MustCompile(`(?i)<br\s*/?>`), " "},                                                           // cell line breaks
+	{regexp.MustCompile("[*`~]"), ""},                                                                    // emphasis and code markers
+	{regexp.MustCompile(`(?m)(^|[^\p{L}\p{N}_])_+`), "$1"},                                               // underscore emphasis, which opens a word...
+	{regexp.MustCompile(`(?m)_+([^\p{L}\p{N}_]|$)`), "$1"},                                               // ...and closes one, so snake_case keeps its underscores
+	{regexp.MustCompile(`\|`), " "},                                                                      // table pipes
+}
+
+// MarkdownPlainText returns the given markdown as plain text - its markup dropped and whitespace collapsed
+func MarkdownPlainText(md string) string {
+	text := md
+	for _, r := range markdownPlainTextRules {
+		text = r.pattern.ReplaceAllString(text, r.replacement)
+	}
+	return strings.TrimSpace(spaceRegex.ReplaceAllString(html.UnescapeString(text), " "))
+}
+
 // Excerpt returns the article's opening, as plain text, for listing it by - a section describes itself, an article
 // is read.
 func (a *Article) Excerpt() string {
