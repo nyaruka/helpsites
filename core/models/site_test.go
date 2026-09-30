@@ -91,6 +91,15 @@ func TestGetRedirect(t *testing.T) {
 	assert.Equal(t, "", site.GetRedirect("/old/page", map[string]string{})) // not a page any more
 }
 
+func TestFaviconURL(t *testing.T) {
+	site := &models.Site{Config: map[string]string{}}
+	assert.Equal(t, "", site.FaviconURL("https://storage.example.com/bucket/"))
+
+	site.Config[models.ConfigFavicon] = "orgs/1/knowledge/abc/favicon/my icon.webp"
+	assert.Equal(t, "https://storage.example.com/bucket/orgs/1/knowledge/abc/favicon/my%20icon.webp", site.FaviconURL("https://storage.example.com/bucket/"))
+	assert.Equal(t, "https://storage.example.com/bucket/orgs/1/knowledge/abc/favicon/my%20icon.webp", site.FaviconURL("https://storage.example.com/bucket"))
+}
+
 func TestIsDarkColor(t *testing.T) {
 	assert.True(t, models.IsDarkColor("#000000"))
 	assert.True(t, models.IsDarkColor("#2f6fed"))

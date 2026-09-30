@@ -88,6 +88,7 @@ func TestSitePages(t *testing.T) {
 	assert.Equal(t, 200, resp.StatusCode)
 	assert.Equal(t, "text/html; charset=utf-8", resp.Header.Get("Content-Type"))
 	assert.Contains(t, body, "<title>Nyaruka Help</title>")
+	assert.Contains(t, body, `<link rel="icon" href="/static/img/favicon.svg">`)
 	assert.Contains(t, body, "Answers for everyone")
 	assert.Contains(t, body, `href="/getting-started/"`)
 	assert.Contains(t, body, "2 articles")
@@ -214,6 +215,16 @@ func TestSitePages(t *testing.T) {
 	assert.Equal(t, "public, max-age=3600", resp.Header.Get("Cache-Control"))
 	assert.True(t, strings.Contains(body, "--primary"))
 
+	resp, _ = get(t, h, "help.nyaruka.com", "/static/img/favicon.svg", "help.nyaruka.com")
+	assert.Equal(t, 200, resp.StatusCode)
+	assert.Contains(t, resp.Header.Get("Content-Type"), "image/svg+xml")
+
+	// a site with its own favicon
+	_, err = rt.DB.ExecContext(t.Context(), `UPDATE knowledge_helpsite SET config = config || '{"favicon": "orgs/1/favicon.webp"}'`)
+	require.NoError(t, err)
+	_, body = get(t, h, "help.nyaruka.com", "/", "help.nyaruka.com")
+	assert.Contains(t, body, `<link rel="icon" href="https://storage.example.com/bucket/orgs/1/favicon.webp">`)
+
 	// a host that isn't the name the handshake was for
 	resp, _ = get(t, h, "help.nyaruka.com", "/", "other.example.com")
 	assert.Equal(t, 421, resp.StatusCode)
@@ -265,6 +276,7 @@ func TestPreview(t *testing.T) {
 	assert.Contains(t, body, `href="/article/list/"`)
 	assert.Contains(t, body, `href="/helpsite/preview/getting-started/"`)
 	assert.Contains(t, body, `href="/helpsite/preview/static/css/helpsite.css"`)
+	assert.Contains(t, body, `<link rel="icon" href="/helpsite/preview/static/img/favicon.svg">`)
 
 	resp, body = preview("", "sesame") // the root without its slash
 	assert.Equal(t, 200, resp.StatusCode)

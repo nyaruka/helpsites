@@ -6,6 +6,7 @@
     <title>{{ block "title" . }}{{ .Site.Title }}{{ end }}</title>
     <meta name="description" content="{{ block "description" . }}{{ if .Site.Tagline }}{{ .Site.Tagline }}{{ else }}{{ .Site.Title }}{{ end }}{{ end }}">
     {{ if .IsPreview }}<meta name="robots" content="noindex">{{ end }}
+    <link rel="icon" href="{{ if .Favicon }}{{ .Favicon }}{{ else }}{{ .Prefix }}/static/img/favicon.svg{{ end }}">
     <link rel="stylesheet" href="{{ .Prefix }}/static/css/helpsite.css">
     <link rel="stylesheet" href="{{ .Prefix }}/static/css/article.css">
     <style>

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"net/url"
 	"regexp"
 	"slices"
 	"strconv"
@@ -24,6 +25,7 @@ const (
 	ConfigPrimaryColor = "primary_color" // links, buttons, accents
 	ConfigHeaderColor  = "header_color"  // the header's background
 	ConfigChatChannel  = "chat_channel"  // the uuid of the WebChat channel whose widget the site embeds, if any
+	ConfigFavicon      = "favicon"       // the storage key of the site's own favicon, if it has one
 
 	DefaultPrimaryColor = "#2f6fed"
 	DefaultHeaderColor  = "#ffffff"
@@ -174,6 +176,16 @@ func (s *Site) HeaderColor() string {
 		return c
 	}
 	return DefaultHeaderColor
+}
+
+// FaviconURL returns where the site's own favicon is served from, resolved against the given base URL of storage, or
+// empty if it doesn't have one
+func (s *Site) FaviconURL(storageURL string) string {
+	key := s.Config[ConfigFavicon]
+	if key == "" {
+		return ""
+	}
+	return strings.TrimSuffix(storageURL, "/") + (&url.URL{Path: "/" + strings.TrimPrefix(key, "/")}).EscapedPath()
 }
 
 // HeaderTextColor returns what's legible on the header - the page's own dark text on a light header, white on a
