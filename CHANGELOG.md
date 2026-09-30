@@ -1,3 +1,6 @@
+## v26.3.10 (2026-09-30)
+ * Serve a site's own favicon, or an open book by default
+
 ## v26.3.9 (2026-09-29)
  * List an article once however its chunks clean up, and keep underscores inside words
  * Only strip column styles from a table row made entirely of them
