@@ -56,7 +56,7 @@ type Site struct {
 	DomainVerifiedOn *time.Time        `json:"domain_verified_on"`
 	IsEnabled        bool              `json:"is_enabled"`
 	Config           map[string]string `json:"config"`
-	Redirects        map[string]string `json:"redirects"`    // old addresses, by path, to the uuid of the page each is now
+	Redirects        map[string]string `json:"redirects"`    // old addresses, by path, to the uuid of the page each is now or RedirectHome
 	ChatChannel      string            `json:"chat_channel"` // the uuid of the WebChat channel the site chats through, if any and still active
 
 	Source struct {
@@ -228,14 +228,31 @@ func NormalizePath(path string) string {
 	return "/" + strings.Trim(strings.ToLower(path), "/")
 }
 
-// GetRedirect returns where an address of the site the workspace moved from leads now, if the mapping has it and
-// it's a page in the given link targets, or empty.
-func (s *Site) GetRedirect(path string, targets map[string]string) string {
-	uuid := s.Redirects[NormalizePath(path)]
-	if uuid == "" {
-		return ""
+// RedirectHome is what an old address can be mapped to in place of a page's uuid, to lead to the home page
+const RedirectHome = "home"
+
+// GetRedirect returns where an address of the site the workspace moved from leads now, or empty. One the mapping has
+// leads to its page, if that's a page in the given link targets, or to the given home if it's mapped there. One the
+// mapping doesn't have but that leads to addresses it does - an index of the old site, like its root for a language -
+// leads home too.
+func (s *Site) GetRedirect(path string, targets map[string]string, home string) string {
+	path = NormalizePath(path)
+
+	if uuid, ok := s.Redirects[path]; ok {
+		if uuid == RedirectHome {
+			return home
+		}
+		return targets[uuid]
 	}
-	return targets[uuid]
+
+	if path != "/" {
+		for old := range s.Redirects {
+			if strings.HasPrefix(old, path+"/") {
+				return home
+			}
+		}
+	}
+	return ""
 }
 
 // IsDarkColor returns whether a #rrggbb color is dark enough to want light text on it, by its relative luminance.

@@ -85,10 +85,19 @@ func TestGetRedirect(t *testing.T) {
 	site := &models.Site{Redirects: map[string]string{"/old/page": "abc"}}
 	targets := map[string]string{"abc": "/getting-started/welcome/"}
 
-	assert.Equal(t, "/getting-started/welcome/", site.GetRedirect("/old/page/", targets))
-	assert.Equal(t, "/getting-started/welcome/", site.GetRedirect("/Old/Page?ref=1", targets))
-	assert.Equal(t, "", site.GetRedirect("/other", targets))
-	assert.Equal(t, "", site.GetRedirect("/old/page", map[string]string{})) // not a page any more
+	assert.Equal(t, "/getting-started/welcome/", site.GetRedirect("/old/page/", targets, "/"))
+	assert.Equal(t, "/getting-started/welcome/", site.GetRedirect("/Old/Page?ref=1", targets, "/"))
+	assert.Equal(t, "", site.GetRedirect("/other", targets, "/"))
+	assert.Equal(t, "", site.GetRedirect("/old/page", map[string]string{}, "/")) // not a page any more
+
+	// an index of the old site that leads to mapped addresses goes home, as does an address mapped there
+	assert.Equal(t, "/", site.GetRedirect("/old", targets, "/"))
+	assert.Equal(t, "/preview/", site.GetRedirect("/OLD/", targets, "/preview/"))
+	assert.Equal(t, "", site.GetRedirect("/ol", targets, "/")) // a prefix of a segment isn't an index
+	assert.Equal(t, "", site.GetRedirect("/old/page/more", targets, "/"))
+
+	site.Redirects["/old/search"] = models.RedirectHome
+	assert.Equal(t, "/", site.GetRedirect("/old/search/", targets, "/"))
 }
 
 func TestFaviconURL(t *testing.T) {
