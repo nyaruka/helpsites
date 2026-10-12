@@ -232,17 +232,16 @@ func NormalizePath(path string) string {
 const RedirectHome = "home"
 
 // GetRedirect returns where an address of the site the workspace moved from leads now, or empty. One the mapping has
-// leads to its page, if that's a page in the given link targets, or to the given home if it's mapped there. One the
-// mapping doesn't have but that leads to addresses it does - an index of the old site, like its root for a language -
-// leads home too.
+// leads to its page, if that's a page in the given link targets, or to the given home if it's mapped there. Otherwise
+// one that leads to addresses the mapping has - an index of the old site, like its root for a language - leads home
+// too.
 func (s *Site) GetRedirect(path string, targets map[string]string, home string) string {
 	path = NormalizePath(path)
 
-	if uuid, ok := s.Redirects[path]; ok {
-		if uuid == RedirectHome {
-			return home
-		}
-		return targets[uuid]
+	if uuid := s.Redirects[path]; uuid == RedirectHome {
+		return home
+	} else if address := targets[uuid]; address != "" {
+		return address
 	}
 
 	if path != "/" {

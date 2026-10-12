@@ -96,6 +96,10 @@ func TestGetRedirect(t *testing.T) {
 	assert.Equal(t, "", site.GetRedirect("/ol", targets, "/")) // a prefix of a segment isn't an index
 	assert.Equal(t, "", site.GetRedirect("/old/page/more", targets, "/"))
 
+	// an index mapped to what isn't a page any more is still an index
+	site.Redirects["/old"] = "gone"
+	assert.Equal(t, "/", site.GetRedirect("/old", targets, "/"))
+
 	site.Redirects["/old/search"] = models.RedirectHome
 	assert.Equal(t, "/", site.GetRedirect("/old/search/", targets, "/"))
 }
