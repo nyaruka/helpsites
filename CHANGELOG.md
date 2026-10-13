@@ -1,3 +1,8 @@
+## v26.3.11 (2026-10-13)
+ * Redirect old index pages to the site's home page
+ * Disable review progress tracking and bump the review model to Opus 5.5
+ * Drop .gitignore entries for the retired deploy tooling
+
 ## v26.3.10 (2026-09-30)
  * Serve a site's own favicon, or an open book by default
 
