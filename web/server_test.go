@@ -208,6 +208,11 @@ func TestSitePages(t *testing.T) {
 	resp, _ = get(t, h, "help.nyaruka.com", "/hc/articles/other/", "help.nyaruka.com")
 	assert.Equal(t, 404, resp.StatusCode)
 
+	// an index of the old site goes home
+	resp, _ = get(t, h, "help.nyaruka.com", "/hc/", "help.nyaruka.com")
+	assert.Equal(t, 301, resp.StatusCode)
+	assert.Equal(t, "/", resp.Header.Get("Location"))
+
 	// static
 	resp, body = get(t, h, "help.nyaruka.com", "/static/css/helpsite.css", "help.nyaruka.com")
 	assert.Equal(t, 200, resp.StatusCode)
@@ -293,6 +298,10 @@ func TestPreview(t *testing.T) {
 	resp, _ = preview("/hc/articles/123/", "sesame")
 	assert.Equal(t, 301, resp.StatusCode)
 	assert.Equal(t, "/helpsite/preview/getting-started/setup/", resp.Header.Get("Location"))
+
+	resp, _ = preview("/hc/", "sesame")
+	assert.Equal(t, 301, resp.StatusCode)
+	assert.Equal(t, "/helpsite/preview/", resp.Header.Get("Location"))
 
 	resp, body = preview("/nope/", "sesame")
 	assert.Equal(t, 404, resp.StatusCode)

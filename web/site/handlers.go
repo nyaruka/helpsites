@@ -144,8 +144,8 @@ func handleArticle(ctx context.Context, rt *runtime.Runtime, r *http.Request, w 
 }
 
 // handleNotFound answers anything else asked of the site - which is where the addresses of the site the workspace
-// moved from arrive. One the site's mapping knows is sent on to where that page lives now; anything else is not
-// found.
+// moved from arrive. One the site's mapping leads somewhere is sent on there (see Site.GetRedirect); anything else is
+// not found.
 func handleNotFound(ctx context.Context, rt *runtime.Runtime, r *http.Request, w http.ResponseWriter) error {
 	sc := web.GetSiteContext(ctx)
 
@@ -154,7 +154,7 @@ func handleNotFound(ctx context.Context, rt *runtime.Runtime, r *http.Request, w
 		if err != nil {
 			return err
 		}
-		if address := sc.Site.GetRedirect(r.URL.Path, targets); address != "" {
+		if address := sc.Site.GetRedirect(r.URL.Path, targets, sc.Prefix+"/"); address != "" {
 			http.Redirect(w, r, address, http.StatusMovedPermanently)
 			return nil
 		}
