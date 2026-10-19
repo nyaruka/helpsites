@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/nyaruka/helpsites/v26/core/certs"
 	"github.com/nyaruka/helpsites/v26/core/models"
@@ -396,15 +397,33 @@ func TestClientGone(t *testing.T) {
 	slog.SetDefault(slog.New(logs))
 	defer slog.SetDefault(prev)
 
-	// a request whose client has gone away fails, but isn't an error of ours to report
+	serve := func(ctx context.Context) {
+		req := httptest.NewRequestWithContext(ctx, http.MethodGet, "https://help.nyaruka.com/getting-started/", nil)
+		req.TLS = &tls.ConnectionState{ServerName: "help.nyaruka.com"}
+		h.ServeHTTP(httptest.NewRecorder(), req)
+	}
+
+	// a request whose client has gone away fails, but isn't an error of ours to report - whether it went before the
+	// site query started...
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
+	serve(ctx)
 
-	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "https://help.nyaruka.com/getting-started/", nil)
-	req.TLS = &tls.ConnectionState{ServerName: "help.nyaruka.com"}
-	h.ServeHTTP(httptest.NewRecorder(), req)
+	assert.Equal(t, []string{"error loading site"}, logs.messages(slog.LevelDebug))
+	assert.Empty(t, logs.messages(slog.LevelError))
 
-	assert.Contains(t, logs.messages(slog.LevelDebug), "error loading site")
+	// ...or while it was running, which the database fails with its own error rather than the context's
+	tx, err := rt.DB.BeginTx(t.Context(), nil)
+	require.NoError(t, err)
+	_, err = tx.ExecContext(t.Context(), `LOCK TABLE knowledge_helpsite IN ACCESS EXCLUSIVE MODE`)
+	require.NoError(t, err)
+
+	ctx, cancel = context.WithCancel(t.Context())
+	time.AfterFunc(200*time.Millisecond, cancel)
+	serve(ctx)
+	require.NoError(t, tx.Rollback())
+
+	assert.Equal(t, []string{"error loading site", "error loading site"}, logs.messages(slog.LevelDebug))
 	assert.Empty(t, logs.messages(slog.LevelError))
 }
 

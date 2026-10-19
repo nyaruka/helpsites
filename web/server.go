@@ -138,11 +138,12 @@ func (s *Server) wrap(handler Handler) http.HandlerFunc {
 }
 
 // logRequestError logs an error from serving a request, unless it's only that the client went away mid-request,
-// which cancels the request's context and so fails whatever it was doing - that's not ours to fix
+// which cancels the request's context and so fails whatever it was doing - that's not ours to fix. We go by the
+// context rather than the error because a query canceled while running fails with the database's own error.
 func logRequestError(r *http.Request, msg string, err error, args ...any) {
 	args = append([]any{"comp", "server", "error", err}, args...)
 
-	if errors.Is(err, context.Canceled) && r.Context().Err() != nil {
+	if errors.Is(r.Context().Err(), context.Canceled) {
 		slog.Debug(msg, args...)
 	} else {
 		slog.Error(msg, args...)
