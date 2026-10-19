@@ -5,11 +5,14 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/nyaruka/helpsites/v26/core/certs"
 	"github.com/nyaruka/helpsites/v26/core/models"
@@ -382,4 +385,75 @@ func TestListeners(t *testing.T) {
 	assert.Equal(t, 200, resp.StatusCode)
 	body, _ := io.ReadAll(resp.Body)
 	assert.Contains(t, string(body), "<title>Getting Started | Nyaruka Help</title>")
+}
+
+func TestClientGone(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+	setupSite(t, rt)
+	h := newServer(t, rt).SiteHandler()
+
+	logs := &capturingHandler{}
+	prev := slog.Default()
+	slog.SetDefault(slog.New(logs))
+	defer slog.SetDefault(prev)
+
+	serve := func(ctx context.Context) {
+		req := httptest.NewRequestWithContext(ctx, http.MethodGet, "https://help.nyaruka.com/getting-started/", nil)
+		req.TLS = &tls.ConnectionState{ServerName: "help.nyaruka.com"}
+		h.ServeHTTP(httptest.NewRecorder(), req)
+	}
+
+	// a request whose client has gone away fails, but isn't an error of ours to report - whether it went before the
+	// site query started...
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	serve(ctx)
+
+	assert.Equal(t, []string{"error loading site"}, logs.messages(slog.LevelDebug))
+	assert.Empty(t, logs.messages(slog.LevelError))
+
+	// ...or while it was running, which the database fails with its own error rather than the context's
+	tx, err := rt.DB.BeginTx(t.Context(), nil)
+	require.NoError(t, err)
+	_, err = tx.ExecContext(t.Context(), `LOCK TABLE knowledge_helpsite IN ACCESS EXCLUSIVE MODE`)
+	require.NoError(t, err)
+
+	ctx, cancel = context.WithCancel(t.Context())
+	time.AfterFunc(200*time.Millisecond, cancel)
+	serve(ctx)
+	require.NoError(t, tx.Rollback())
+
+	assert.Equal(t, []string{"error loading site", "error loading site"}, logs.messages(slog.LevelDebug))
+	assert.Empty(t, logs.messages(slog.LevelError))
+}
+
+type capturingHandler struct {
+	mu      sync.Mutex
+	records []slog.Record
+}
+
+func (h *capturingHandler) Enabled(context.Context, slog.Level) bool { return true }
+
+func (h *capturingHandler) Handle(_ context.Context, r slog.Record) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	h.records = append(h.records, r)
+	return nil
+}
+
+func (h *capturingHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
+func (h *capturingHandler) WithGroup(string) slog.Handler      { return h }
+
+func (h *capturingHandler) messages(level slog.Level) []string {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	var msgs []string
+	for _, r := range h.records {
+		if r.Level == level {
+			msgs = append(msgs, r.Message)
+		}
+	}
+	return msgs
 }
