@@ -80,7 +80,7 @@ func (s *Server) requireSite(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		site, err := models.LoadSiteByDomain(r.Context(), s.rt.DB, models.NormalizeDomain(r.Host))
 		if err != nil {
-			slog.Error("error loading site", "comp", "server", "host", r.Host, "error", err)
+			logRequestError(r, "error loading site", err, "host", r.Host)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}

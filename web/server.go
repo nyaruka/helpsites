@@ -4,6 +4,7 @@ import (
 	"compress/flate"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -130,9 +131,21 @@ func (s *Server) newSiteRouter() chi.Router {
 func (s *Server) wrap(handler Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := handler(r.Context(), s.rt, r, w); err != nil {
-			slog.Error("error handling request", "comp", "server", "url", r.URL.String(), "error", err)
+			logRequestError(r, "error handling request", err, "url", r.URL.String())
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
+	}
+}
+
+// logRequestError logs an error from serving a request, unless it's only that the client went away mid-request,
+// which cancels the request's context and so fails whatever it was doing - that's not ours to fix
+func logRequestError(r *http.Request, msg string, err error, args ...any) {
+	args = append([]any{"comp", "server", "error", err}, args...)
+
+	if errors.Is(err, context.Canceled) && r.Context().Err() != nil {
+		slog.Debug(msg, args...)
+	} else {
+		slog.Error(msg, args...)
 	}
 }
 
@@ -151,7 +164,7 @@ func (s *Server) InternalHandler() http.Handler {
 func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 	site, err := models.LoadSiteByUUID(r.Context(), s.rt.DB, chi.URLParam(r, "uuid"))
 	if err != nil {
-		slog.Error("error loading site", "comp", "server", "error", err)
+		logRequestError(r, "error loading site", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
