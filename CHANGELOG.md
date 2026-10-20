@@ -1,3 +1,7 @@
+## v26.3.12 (2026-10-20)
+ * Don't report a request failing as an error when it's because the client went away due to cancellation
+ * Update to vkutil v0.30.0 for default connection timeouts
+
 ## v26.3.11 (2026-10-13)
  * Redirect old index pages to the site's home page
  * Disable review progress tracking and bump the review model to Opus 5.5
