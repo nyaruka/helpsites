@@ -249,6 +249,92 @@ func TestSitePages(t *testing.T) {
 	assert.Contains(t, body, "This help site isn&#39;t available")
 }
 
+func TestSitemap(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+	site, ids := setupSite(t, rt)
+	h := newServer(t, rt).SiteHandler()
+
+	// a draft isn't listed, and an article shows the same image twice, by relative and by absolute address
+	testdb.InsertArticle(t, rt, site.Source.ID, ids["billing"], "Refunds", "refunds", testdb.ArticleOptions{Draft: true})
+	drafts := testdb.InsertSection(t, rt, site.Source.ID, "Drafts", "drafts", testdb.ArticleOptions{Draft: true})
+	testdb.InsertArticle(t, rt, site.Source.ID, drafts, "Hidden", "hidden", testdb.ArticleOptions{}) // in a draft section
+	testdb.InsertArticle(t, rt, site.Source.ID, ids["billing"], "Receipts", "receipts", testdb.ArticleOptions{
+		SortOrder: 1,
+		BodyHTML: `<p><img src="img/receipt.png" alt="a"> <img src="/billing/receipts/img/receipt.png" alt="b">` +
+			`<img src="https://example.com/x.png"><img src="data:image/png;base64,AAAA"><img alt="none"></p>`,
+	})
+
+	modified := time.Date(2026, 3, 4, 5, 6, 7, 0, time.UTC)
+	_, err := rt.DB.ExecContext(t.Context(), `UPDATE knowledge_article SET modified_on = $1`, modified)
+	require.NoError(t, err)
+	_, err = rt.DB.ExecContext(t.Context(), `UPDATE knowledge_article SET modified_on = $2 WHERE id = $1`, ids["setup"], modified.Add(time.Hour))
+	require.NoError(t, err)
+
+	resp, body := get(t, h, "help.nyaruka.com", "/sitemap.xml", "help.nyaruka.com")
+	assert.Equal(t, 200, resp.StatusCode)
+	assert.Equal(t, "application/xml; charset=utf-8", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "public, max-age=300", resp.Header.Get("Cache-Control"))
+	assert.Equal(t, `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>https://help.nyaruka.com/</loc>
+  </url>
+  <url>
+    <loc>https://help.nyaruka.com/billing/</loc>
+    <lastmod>2026-03-04T05:06:07Z</lastmod>
+  </url>
+  <url>
+    <loc>https://help.nyaruka.com/getting-started/</loc>
+    <lastmod>2026-03-04T06:06:07Z</lastmod>
+  </url>
+  <url>
+    <loc>https://help.nyaruka.com/billing/invoices/</loc>
+    <lastmod>2026-03-04T05:06:07Z</lastmod>
+    <image:image>
+      <image:loc>https://storage.example.com/bucket/orgs/1/knowledge/a%20b.png</image:loc>
+    </image:image>
+    <image:image>
+      <image:loc>https://example.com/x.png</image:loc>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://help.nyaruka.com/billing/receipts/</loc>
+    <lastmod>2026-03-04T05:06:07Z</lastmod>
+    <image:image>
+      <image:loc>https://help.nyaruka.com/billing/receipts/img/receipt.png</image:loc>
+    </image:image>
+    <image:image>
+      <image:loc>https://example.com/x.png</image:loc>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://help.nyaruka.com/getting-started/setup/</loc>
+    <lastmod>2026-03-04T06:06:07Z</lastmod>
+  </url>
+  <url>
+    <loc>https://help.nyaruka.com/getting-started/welcome/</loc>
+    <lastmod>2026-03-04T05:06:07Z</lastmod>
+  </url>
+</urlset>`, body)
+
+	// on the host the site was reached on, however it was asked for
+	_, body = get(t, h, "www.help.nyaruka.com", "/sitemap.xml", "www.help.nyaruka.com")
+	assert.Contains(t, body, "<loc>https://www.help.nyaruka.com/billing/invoices/</loc>")
+
+	_, body = get(t, h, "Help.Nyaruka.com:443", "/sitemap.xml", "help.nyaruka.com")
+	assert.Contains(t, body, "<loc>https://help.nyaruka.com/billing/invoices/</loc>")
+
+	// and robots.txt points to it
+	resp, body = get(t, h, "help.nyaruka.com", "/robots.txt", "help.nyaruka.com")
+	assert.Equal(t, 200, resp.StatusCode)
+	assert.Equal(t, "text/plain; charset=utf-8", resp.Header.Get("Content-Type"))
+	assert.Equal(t, "User-agent: *\nAllow: /\n\nSitemap: https://help.nyaruka.com/sitemap.xml\n", body)
+
+	// they're only at their exact addresses
+	resp, _ = get(t, h, "help.nyaruka.com", "/sitemap.xml/", "help.nyaruka.com")
+	assert.Equal(t, 404, resp.StatusCode)
+}
+
 func TestPreview(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 	site, ids := setupSite(t, rt)
@@ -312,6 +398,12 @@ func TestPreview(t *testing.T) {
 
 	resp, _ = preview("/static/css/helpsite.css", "sesame")
 	assert.Equal(t, 200, resp.StatusCode)
+
+	// a preview isn't for crawling
+	resp, _ = preview("/sitemap.xml", "sesame")
+	assert.Equal(t, 404, resp.StatusCode)
+	resp, _ = preview("/robots.txt", "sesame")
+	assert.Equal(t, 404, resp.StatusCode)
 
 	// an unknown site
 	req := httptest.NewRequest(http.MethodGet, "http://helpsites:8031/hi/preview/00000000-0000-0000-0000-000000000000/", nil)

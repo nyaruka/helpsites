@@ -103,6 +103,18 @@ func TestArticles(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "/helpsite/preview/getting-started/welcome/", targets[welcomeUUID])
 
+	// every readable article, section by section in display order - not one under another article, which has no page
+	testdb.InsertArticle(t, rt, source, welcome, "Nested", "nested", testdb.ArticleOptions{})
+
+	readable, err := models.LoadReadable(ctx, rt.DB, source)
+	require.NoError(t, err)
+	require.Len(t, readable, 3)
+	assert.Equal(t, invoices, readable[0].ID)
+	assert.Equal(t, "billing", readable[0].Parent.Slug)
+	assert.Equal(t, welcome, readable[1].ID)
+	assert.Equal(t, "<h2 id=\"hello\">Hello</h2><p>Welcome to <strong>the</strong> platform &amp; more.</p>", readable[1].BodyHTML)
+	assert.Equal(t, setup, readable[2].ID)
+
 	// readable lookups
 	byUUID, err := models.LoadReadableByUUID(ctx, rt.DB, source, []string{welcomeUUID, startedUUID})
 	require.NoError(t, err)

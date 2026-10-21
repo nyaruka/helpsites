@@ -109,12 +109,15 @@ func (s *Server) requireAuthToken(next http.Handler) http.Handler {
 	})
 }
 
+// the files a site serves at its root, which crawlers look for at exactly these addresses
+var rootFiles = map[string]bool{"/robots.txt": true, "/sitemap.xml": true}
+
 // redirectToSlash sends a request for a page without its trailing slash to the address with it, the way the platform
-// does - every page's address ends with one, and static files are the only paths that don't
+// does - every page's address ends with one, and static and root files are the only paths that don't
 func redirectToSlash(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
-		if path != "" && !strings.HasSuffix(path, "/") && !strings.HasPrefix(path, "/static/") {
+		if path != "" && !strings.HasSuffix(path, "/") && !strings.HasPrefix(path, "/static/") && !rootFiles[path] {
 			target := path + "/"
 			if r.URL.RawQuery != "" {
 				target += "?" + r.URL.RawQuery
