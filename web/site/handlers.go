@@ -26,8 +26,10 @@ const (
 )
 
 func init() {
-	// search comes before the section pattern so it can't be shadowed by a section of that name
+	// search and the root files come before the section pattern so they can't be shadowed by a section of that name
 	web.SiteRoute(http.MethodGet, "/", handleHome)
+	web.SiteRoute(http.MethodGet, "/robots.txt", handleRobots)
+	web.SiteRoute(http.MethodGet, "/sitemap.xml", handleSitemap)
 	web.SiteRoute(http.MethodGet, "/search/", handleSearch)
 	web.SiteRoute(http.MethodGet, "/{section:[\\w-]+}/", handleSection)
 	web.SiteRoute(http.MethodGet, "/{section:[\\w-]+}/{article:[\\w-]+}/", handleArticle)

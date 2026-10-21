@@ -135,6 +135,24 @@ func LoadArticle(ctx context.Context, db DBorTx, sourceID SourceID, sectionID Ar
 	return article, nil
 }
 
+const sqlSelectReadable = `
+SELECT ROW_TO_JSON(r) FROM (
+    SELECT ` + sqlArticleColumns + `, ` + sqlArticleParent + `
+      FROM knowledge_article a
+      JOIN knowledge_article p ON p.id = a.parent_id
+     WHERE ` + sqlReadable + `
+  ORDER BY p.sort_order, p.title, a.sort_order, a.title
+) r;`
+
+// LoadReadable loads every readable article on the site, with its body, in display order - section by section
+func LoadReadable(ctx context.Context, db DBorTx, sourceID SourceID) ([]*Article, error) {
+	articles, err := queryJSON(ctx, db, func() *Article { return &Article{} }, sqlSelectReadable, sourceID)
+	if err != nil {
+		return nil, fmt.Errorf("error loading readable articles: %w", err)
+	}
+	return articles, nil
+}
+
 const sqlSelectReadableByUUID = `
 SELECT ROW_TO_JSON(r) FROM (
     SELECT ` + sqlArticleColumns + `, ` + sqlArticleParent + `
