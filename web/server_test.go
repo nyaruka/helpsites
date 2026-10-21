@@ -256,6 +256,8 @@ func TestSitemap(t *testing.T) {
 
 	// a draft isn't listed, and an article shows the same image twice, by relative and by absolute address
 	testdb.InsertArticle(t, rt, site.Source.ID, ids["billing"], "Refunds", "refunds", testdb.ArticleOptions{Draft: true})
+	drafts := testdb.InsertSection(t, rt, site.Source.ID, "Drafts", "drafts", testdb.ArticleOptions{Draft: true})
+	testdb.InsertArticle(t, rt, site.Source.ID, drafts, "Hidden", "hidden", testdb.ArticleOptions{}) // in a draft section
 	testdb.InsertArticle(t, rt, site.Source.ID, ids["billing"], "Receipts", "receipts", testdb.ArticleOptions{
 		SortOrder: 1,
 		BodyHTML: `<p><img src="img/receipt.png" alt="a"> <img src="/billing/receipts/img/receipt.png" alt="b">` +
@@ -315,9 +317,12 @@ func TestSitemap(t *testing.T) {
   </url>
 </urlset>`, body)
 
-	// as the site was reached
+	// on the host the site was reached on, however it was asked for
 	_, body = get(t, h, "www.help.nyaruka.com", "/sitemap.xml", "www.help.nyaruka.com")
 	assert.Contains(t, body, "<loc>https://www.help.nyaruka.com/billing/invoices/</loc>")
+
+	_, body = get(t, h, "Help.Nyaruka.com:443", "/sitemap.xml", "help.nyaruka.com")
+	assert.Contains(t, body, "<loc>https://help.nyaruka.com/billing/invoices/</loc>")
 
 	// and robots.txt points to it
 	resp, body = get(t, h, "help.nyaruka.com", "/robots.txt", "help.nyaruka.com")

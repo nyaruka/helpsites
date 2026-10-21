@@ -140,11 +140,12 @@ SELECT ROW_TO_JSON(r) FROM (
     SELECT ` + sqlArticleColumns + `, ` + sqlArticleParent + `
       FROM knowledge_article a
       JOIN knowledge_article p ON p.id = a.parent_id
-     WHERE ` + sqlReadable + `
+     WHERE ` + sqlReadable + ` AND p.parent_id IS NULL
   ORDER BY p.sort_order, p.title, a.sort_order, a.title
 ) r;`
 
-// LoadReadable loads every readable article on the site, with its body, in display order - section by section
+// LoadReadable loads every readable article on the site, with its body, in display order - section by section. Only an
+// article in a section has a page, so one under another article isn't included.
 func LoadReadable(ctx context.Context, db DBorTx, sourceID SourceID) ([]*Article, error) {
 	articles, err := queryJSON(ctx, db, func() *Article { return &Article{} }, sqlSelectReadable, sourceID)
 	if err != nil {

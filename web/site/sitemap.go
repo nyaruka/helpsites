@@ -113,13 +113,15 @@ func handleSitemap(ctx context.Context, rt *runtime.Runtime, r *http.Request, w 
 	return nil
 }
 
-// siteURL returns the absolute URL of the given path on the site, as the request reached it
+// siteURL returns the absolute URL of the given path on the site, on the host the request reached it on - lowercased
+// and without its scheme's default port, so that the same host asked for differently gives the same addresses
 func siteURL(r *http.Request, path string) string {
-	scheme := "http"
+	scheme, defaultPort := "http", ":80"
 	if r.TLS != nil {
-		scheme = "https"
+		scheme, defaultPort = "https", ":443"
 	}
-	return (&url.URL{Scheme: scheme, Host: r.Host, Path: path}).String()
+	host := strings.TrimSuffix(strings.ToLower(r.Host), defaultPort)
+	return (&url.URL{Scheme: scheme, Host: host, Path: path}).String()
 }
 
 // ImageURLs returns the addresses of the images the given rendered body shows, resolved against the address of its
@@ -141,10 +143,11 @@ func ImageURLs(body, pageURL string) []string {
 			continue
 		}
 		for _, attr := range n.Attr {
-			if attr.Namespace != "" || attr.Key != "src" {
+			value := strings.TrimSpace(attr.Val)
+			if attr.Namespace != "" || attr.Key != "src" || value == "" {
 				continue
 			}
-			src, err := base.Parse(strings.TrimSpace(attr.Val))
+			src, err := base.Parse(value)
 			if err != nil || (src.Scheme != "http" && src.Scheme != "https") {
 				continue
 			}

@@ -103,7 +103,9 @@ func TestArticles(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "/helpsite/preview/getting-started/welcome/", targets[welcomeUUID])
 
-	// every readable article, section by section in display order
+	// every readable article, section by section in display order - not one under another article, which has no page
+	testdb.InsertArticle(t, rt, source, welcome, "Nested", "nested", testdb.ArticleOptions{})
+
 	readable, err := models.LoadReadable(ctx, rt.DB, source)
 	require.NoError(t, err)
 	require.Len(t, readable, 3)
