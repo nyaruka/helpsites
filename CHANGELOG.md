@@ -1,3 +1,7 @@
+## v26.3.13 (2026-10-21)
+ * Serve a sitemap of each site's pages and images, and a robots.txt that points to it
+ * List only articles in sections in the sitemap, on a normalized host, and test its images directly
+
 ## v26.3.12 (2026-10-20)
  * Don't report a request failing as an error when it's because the client went away due to cancellation
  * Update to vkutil v0.30.0 for default connection timeouts
