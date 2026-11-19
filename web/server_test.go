@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -21,6 +22,7 @@ import (
 	"github.com/nyaruka/helpsites/v26/testsuite/testdb"
 	"github.com/nyaruka/helpsites/v26/web"
 	_ "github.com/nyaruka/helpsites/v26/web/site"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -133,11 +135,12 @@ func TestSitePages(t *testing.T) {
 	assert.Contains(t, body, "static/js/helpsite.js")
 	assert.Contains(t, body, "Last updated")
 
-	var views int
-	require.NoError(t, rt.DB.QueryRowContext(t.Context(), `SELECT COALESCE(SUM(count), 0) FROM knowledge_articlecount WHERE article_id = $1`, ids["welcome"]).Scan(&views))
-	assert.Equal(t, 1, views)
+	vc := rt.VK.Get()
+	defer vc.Close()
+	assertvk.HGet(t, vc, "{tallies}:live", fmt.Sprintf("A%d|%s", ids["welcome"], models.ArticleViewsScope(time.Now())), "1")
 
-	// and it's now popular
+	// and once the platform has flushed its views, it's popular
+	testdb.InsertViews(t, rt, ids["welcome"], time.Now(), 1)
 	resp, body = get(t, h, "help.nyaruka.com", "/", "help.nyaruka.com")
 	assert.Contains(t, body, "Popular articles")
 
@@ -337,7 +340,7 @@ func TestSitemap(t *testing.T) {
 
 func TestPreview(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
-	site, ids := setupSite(t, rt)
+	site, _ := setupSite(t, rt)
 	s := newServer(t, rt)
 	h := s.InternalHandler()
 
@@ -380,9 +383,9 @@ func TestPreview(t *testing.T) {
 	assert.Equal(t, 200, resp.StatusCode)
 	assert.Contains(t, body, `<a href="/helpsite/preview/getting-started/setup/">setting up</a>`)
 
-	var views int
-	require.NoError(t, rt.DB.QueryRowContext(t.Context(), `SELECT COUNT(*) FROM knowledge_articlecount WHERE article_id = $1`, ids["welcome"]).Scan(&views))
-	assert.Equal(t, 0, views)
+	vc := rt.VK.Get()
+	defer vc.Close()
+	assertvk.NotExists(t, vc, "{tallies}:live")
 
 	resp, _ = preview("/hc/articles/123/", "sesame")
 	assert.Equal(t, 301, resp.StatusCode)

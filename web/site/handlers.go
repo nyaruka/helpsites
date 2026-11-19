@@ -133,7 +133,10 @@ func handleArticle(ctx context.Context, rt *runtime.Runtime, r *http.Request, w 
 
 	// a preview is the workspace looking at its own site, not a reader
 	if !sc.IsPreview {
-		if err := models.RecordArticleView(ctx, rt.DB, article.ID); err != nil {
+		vc := rt.VK.Get()
+		err := models.RecordArticleView(ctx, vc, article.ID)
+		vc.Close()
+		if err != nil {
 			return err
 		}
 	}
