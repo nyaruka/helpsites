@@ -7,6 +7,9 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	valkey "github.com/gomodule/redigo/redis"
+	"github.com/nyaruka/vkutil"
 )
 
 type ArticleID int
@@ -231,34 +234,40 @@ SELECT ROW_TO_JSON(r) FROM (
       FROM knowledge_article a
       JOIN knowledge_article p ON p.id = a.parent_id
       JOIN (
-          SELECT c.article_id, SUM(c.count) AS total
-            FROM knowledge_articlecount c
-           WHERE c.scope = 'views' AND c.day >= $2
-        GROUP BY c.article_id
+          SELECT t.article_id, SUM(t.count) AS total
+            FROM knowledge_articletally t
+            JOIN knowledge_article x ON x.id = t.article_id AND x.source_id = $1
+           WHERE t.scope >= $2 AND t.scope < $3
+        GROUP BY t.article_id
       ) v ON v.article_id = a.id
      WHERE ` + sqlReadable + `
   ORDER BY v.total DESC, a.id
-     LIMIT $3
+     LIMIT $4
 ) r;`
 
-// LoadPopular loads the most viewed readable articles since the given day, most viewed first
+// LoadPopular loads the most viewed readable articles since the given day, most viewed first. Views still buffered in
+// Valkey are left out, as they're only the last moments of the window.
 func LoadPopular(ctx context.Context, db DBorTx, sourceID SourceID, since time.Time, limit int) ([]*Article, error) {
-	articles, err := queryJSON(ctx, db, func() *Article { return &Article{} }, sqlSelectPopular, sourceID, since.Format("2006-01-02"), limit)
+	until := time.Now().UTC().AddDate(0, 0, 1)
+	articles, err := queryJSON(ctx, db, func() *Article { return &Article{} }, sqlSelectPopular, sourceID, ArticleViewsScope(since), ArticleViewsScope(until), limit)
 	if err != nil {
 		return nil, fmt.Errorf("error loading popular articles: %w", err)
 	}
 	return articles, nil
 }
 
-// the scope of the daily count of an article's views
-const ArticleCountScopeViews = "views"
+// the tallies the platform flushes from Valkey into its tally tables, of which articles' are prefixed with A
+var tallies = vkutil.NewTallies("tallies")
 
-const sqlInsertArticleView = `
-INSERT INTO knowledge_articlecount(article_id, day, scope, count, is_squashed) VALUES($1, (NOW() AT TIME ZONE 'UTC')::date, 'views', 1, FALSE)`
+// ArticleViewsScope returns the tally scope of an article's views on the given UTC day
+func ArticleViewsScope(day time.Time) string {
+	return "views@" + day.UTC().Format(time.DateOnly)
+}
 
-// RecordArticleView records a view of the given article, as a delta the platform squashes periodically
-func RecordArticleView(ctx context.Context, db DBorTx, articleID ArticleID) error {
-	if _, err := db.ExecContext(ctx, sqlInsertArticleView, articleID); err != nil {
+// RecordArticleView records a view of the given article today
+func RecordArticleView(ctx context.Context, vc valkey.Conn, articleID ArticleID) error {
+	field := fmt.Sprintf("A%d|%s", articleID, ArticleViewsScope(time.Now()))
+	if err := tallies.Increment(ctx, vc, map[string]int64{field: 1}); err != nil {
 		return fmt.Errorf("error recording article view: %w", err)
 	}
 	return nil

@@ -1,12 +1,14 @@
 package models_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/nyaruka/helpsites/v26/core/models"
 	"github.com/nyaruka/helpsites/v26/testsuite"
 	"github.com/nyaruka/helpsites/v26/testsuite/testdb"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -130,7 +132,12 @@ func TestArticles(t *testing.T) {
 	testdb.InsertViews(t, rt, welcome, today, 2)
 	testdb.InsertViews(t, rt, setup, today.AddDate(0, 0, -3), 5)
 	testdb.InsertViews(t, rt, invoices, today.AddDate(0, 0, -60), 100) // too long ago
-	require.NoError(t, models.RecordArticleView(ctx, rt.DB, welcome))
+
+	// a recorded view is buffered in Valkey, which popularity doesn't wait for
+	vc := rt.VK.Get()
+	defer vc.Close()
+	require.NoError(t, models.RecordArticleView(ctx, vc, welcome))
+	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{fmt.Sprintf("A%d|views@%s", welcome, today.Format(time.DateOnly)): "1"})
 
 	popular, err := models.LoadPopular(ctx, rt.DB, source, today.AddDate(0, 0, -30), 6)
 	require.NoError(t, err)

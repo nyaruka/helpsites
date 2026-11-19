@@ -80,7 +80,7 @@ func templateName() (string, error) {
 		return "", fmt.Errorf("error reading test dump: %w", err)
 	}
 
-	sum := sha256.Sum256(append(d, []byte(schemaExtras)...))
+	sum := sha256.Sum256(d)
 
 	return fmt.Sprintf("%s%x", dbTemplatePrefix, sum[:6]), nil
 }
@@ -144,9 +144,6 @@ func ensureTemplate(ctx context.Context, name string) error {
 		if err := restoreDump(ctx, scratch); err != nil {
 			return err
 		}
-		if err := applySchemaExtras(ctx, scratch); err != nil {
-			return err
-		}
 		if err := execDDL(ctx, conn, `ALTER DATABASE %s RENAME TO `+pq.QuoteIdentifier(name), scratch); err != nil {
 			return err
 		}
@@ -167,27 +164,6 @@ func ensureTemplate(ctx context.Context, name string) error {
 	}
 
 	return sweepStale(ctx, conn)
-}
-
-// schemaExtras is what the platform's schema will have that the dump doesn't yet: the HTML the platform renders an
-// article's body to when it's published, and the headings its page lists. TODO: drop once the dump has them.
-const schemaExtras = `
-ALTER TABLE knowledge_article
-    ADD COLUMN IF NOT EXISTS body_html TEXT NOT NULL DEFAULT '',
-    ADD COLUMN IF NOT EXISTS headings JSONB NOT NULL DEFAULT '[]';`
-
-// applySchemaExtras applies the schema extras to the given database
-func applySchemaExtras(ctx context.Context, dbName string) error {
-	db, err := sqlx.Open("postgres", fmt.Sprintf(dbTestDSNFormat, dbName))
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	if _, err := db.ExecContext(ctx, schemaExtras); err != nil {
-		return fmt.Errorf("error applying schema extras to %s: %w", dbName, err)
-	}
-	return nil
 }
 
 // restoreDump loads the test dump into the given database

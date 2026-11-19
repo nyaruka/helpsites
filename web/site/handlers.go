@@ -6,6 +6,7 @@ import (
 	"context"
 	"html"
 	"html/template"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -133,9 +134,12 @@ func handleArticle(ctx context.Context, rt *runtime.Runtime, r *http.Request, w 
 
 	// a preview is the workspace looking at its own site, not a reader
 	if !sc.IsPreview {
-		if err := models.RecordArticleView(ctx, rt.DB, article.ID); err != nil {
-			return err
+		// a lost view is better than a failed page
+		vc := rt.VK.Get()
+		if err := models.RecordArticleView(ctx, vc, article.ID); err != nil {
+			slog.Error("error recording article view", "article", article.ID, "error", err)
 		}
+		vc.Close()
 	}
 
 	page.Section = section

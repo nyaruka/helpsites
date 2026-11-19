@@ -151,8 +151,8 @@ func insertArticle(t *testing.T, rt *runtime.Runtime, source models.SourceID, pa
 
 	var id models.ArticleID
 	err := rt.DB.QueryRowContext(context.Background(),
-		`INSERT INTO knowledge_article(uuid, source_id, parent_id, sort_order, title, slug, body, body_html, headings, description, language, status, published_on, is_active, created_by_id, created_on, modified_by_id, modified_on)
-		 VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'eng', $11, $12, $13, $14, NOW(), $14, NOW()) RETURNING id`,
+		`INSERT INTO knowledge_article(uuid, source_id, parent_id, sort_order, title, slug, body, body_html, headings, description, language, info, status, published_on, is_active, created_by_id, created_on, modified_by_id, modified_on)
+		 VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'eng', '{}', $11, $12, $13, $14, NOW(), $14, NOW()) RETURNING id`,
 		uuid.NewString(), source, parent, opts.SortOrder, title, slug, models.PlainText(opts.BodyHTML), opts.BodyHTML, headingsJSON, opts.Description, status, publishedOn, !opts.Inactive, Admin,
 	).Scan(&id)
 	require.NoError(t, err)
@@ -173,8 +173,8 @@ func InsertViews(t *testing.T, rt *runtime.Runtime, article models.ArticleID, da
 	t.Helper()
 
 	_, err := rt.DB.ExecContext(context.Background(),
-		`INSERT INTO knowledge_articlecount(article_id, day, scope, count, is_squashed) VALUES($1, $2, 'views', $3, FALSE)`,
-		article, day.Format("2006-01-02"), count,
+		`INSERT INTO knowledge_articletally(article_id, scope, count) VALUES($1, $2, $3)`,
+		article, models.ArticleViewsScope(day), count,
 	)
 	require.NoError(t, err)
 }
