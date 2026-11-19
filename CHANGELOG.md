@@ -1,3 +1,7 @@
+## v26.3.14 (2026-11-19)
+ * Record article views as tallies and rank popular articles by them
+ * Stop the review workflow adding Claude Code attribution
+
 ## v26.3.13 (2026-10-21)
  * Serve a sitemap of each site's pages and images, and a robots.txt that points to it
  * List only articles in sections in the sitemap, on a normalized host, and test its images directly
