@@ -124,6 +124,7 @@ func TestSitePages(t *testing.T) {
 	assert.Contains(t, body, "Nyaruka Help") // styled as one of the site's pages
 
 	// article, with its links resolved and a view recorded
+	viewed := time.Now()
 	resp, body = get(t, h, "help.nyaruka.com", "/getting-started/welcome/", "help.nyaruka.com")
 	assert.Equal(t, 200, resp.StatusCode)
 	assert.Contains(t, body, "<title>Welcome | Nyaruka Help</title>")
@@ -137,10 +138,10 @@ func TestSitePages(t *testing.T) {
 
 	vc := rt.VK.Get()
 	defer vc.Close()
-	assertvk.HGet(t, vc, "{tallies}:live", fmt.Sprintf("A%d|%s", ids["welcome"], models.ArticleViewsScope(time.Now())), "1")
+	assertvk.HGet(t, vc, "{tallies}:live", fmt.Sprintf("A%d|%s", ids["welcome"], models.ArticleViewsScope(viewed)), "1")
 
 	// and once the platform has flushed its views, it's popular
-	testdb.InsertViews(t, rt, ids["welcome"], time.Now(), 1)
+	testdb.InsertViews(t, rt, ids["welcome"], viewed, 1)
 	resp, body = get(t, h, "help.nyaruka.com", "/", "help.nyaruka.com")
 	assert.Contains(t, body, "Popular articles")
 

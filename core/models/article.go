@@ -236,6 +236,7 @@ SELECT ROW_TO_JSON(r) FROM (
       JOIN (
           SELECT t.article_id, SUM(t.count) AS total
             FROM knowledge_articletally t
+            JOIN knowledge_article x ON x.id = t.article_id AND x.source_id = $1
            WHERE t.scope >= $2 AND t.scope < $3
         GROUP BY t.article_id
       ) v ON v.article_id = a.id
