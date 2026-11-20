@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	valkey "github.com/gomodule/redigo/redis"
@@ -35,6 +36,7 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 	}
 	rt.DB.SetMaxIdleConns(4)
 	rt.DB.SetMaxOpenConns(16)
+	rt.DB.SetConnMaxLifetime(10 * time.Minute) // so connections move to the new primary after a failover
 
 	rt.VK, err = vkutil.NewPool(cfg.Valkey, vkutil.WithMaxActive(16))
 	if err != nil {
