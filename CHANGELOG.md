@@ -1,3 +1,7 @@
+## v26.3.15 (2026-11-20)
+ * Set a maximum lifetime on database connections
+ * Run CI against PostgreSQL 18 and regenerate the test database dump with pg_dump 18
+
 ## v26.3.14 (2026-11-19)
  * Record article views as tallies and rank popular articles by them
  * Stop the review workflow adding Claude Code attribution
