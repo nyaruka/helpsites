@@ -1,3 +1,6 @@
+## v26.3.16 (2026-11-24)
+ * Make the database pool size configurable, defaulting to 8 open and 2 idle connections
+
 ## v26.3.15 (2026-11-20)
  * Set a maximum lifetime on database connections
  * Run CI against PostgreSQL 18 and regenerate the test database dump with pg_dump 18
