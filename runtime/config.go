@@ -20,8 +20,10 @@ const (
 
 // Config is our top level configuration object
 type Config struct {
-	DB     string `validate:"url,startswith=postgres:"                    help:"URL for the platform's Postgres database"`
-	Valkey string `validate:"url,startswith=valkey:|startswith=valkeys:" help:"URL for the Valkey instance, valkeys:// for TLS"`
+	DB             string `validate:"url,startswith=postgres:"                    help:"URL for the platform's Postgres database, which is only read so can be a read replica"`
+	DBMaxOpenConns int    `validate:"min=1"                                       help:"the maximum number of open connections to the database"`
+	DBMaxIdleConns int    `validate:"min=0"                                       help:"the maximum number of idle connections kept open to the database"`
+	Valkey         string `validate:"url,startswith=valkey:|startswith=valkeys:" help:"URL for the Valkey instance, valkeys:// for TLS"`
 
 	HTTPSAddress    string `help:"the address the HTTPS listener will bind to, empty means all interfaces"`
 	HTTPSPort       int    `help:"the port the HTTPS listener will listen on"`
@@ -52,8 +54,10 @@ type Config struct {
 // NewDefaultConfig returns a new default configuration object
 func NewDefaultConfig() *Config {
 	return &Config{
-		DB:     "postgres://temba:temba@postgres/temba?sslmode=disable",
-		Valkey: "valkey://valkey:6379/15",
+		DB:             "postgres://temba:temba@postgres/temba?sslmode=disable",
+		DBMaxOpenConns: 8,
+		DBMaxIdleConns: 2,
+		Valkey:         "valkey://valkey:6379/15",
 
 		HTTPSAddress:    "",
 		HTTPSPort:       443,
