@@ -34,8 +34,8 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error creating Postgres connection pool: %w", err)
 	}
-	rt.DB.SetMaxIdleConns(4)
-	rt.DB.SetMaxOpenConns(16)
+	rt.DB.SetMaxIdleConns(cfg.DBMaxIdleConns)
+	rt.DB.SetMaxOpenConns(cfg.DBMaxOpenConns)
 	rt.DB.SetConnMaxLifetime(10 * time.Minute) // so connections move to the new primary after a failover
 
 	rt.VK, err = vkutil.NewPool(cfg.Valkey, vkutil.WithMaxActive(16))

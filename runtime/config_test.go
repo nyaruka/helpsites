@@ -15,6 +15,13 @@ func TestConfig(t *testing.T) {
 	cfg.StorageURL = "https://storage.example.com/bucket/"
 	require.NoError(t, cfg.Parse())
 
+	assert.Equal(t, 8, cfg.DBMaxOpenConns)
+	assert.Equal(t, 2, cfg.DBMaxIdleConns)
+
+	cfg.DBMaxOpenConns = 0
+	assert.ErrorContains(t, cfg.Parse(), "DBMaxOpenConns")
+	cfg.DBMaxOpenConns = 8
+
 	assert.Equal(t, "TembaCerts", cfg.CertsTable())
 
 	cfg.DynamoTablePrefix = "Test"
